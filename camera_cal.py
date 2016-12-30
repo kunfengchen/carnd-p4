@@ -83,34 +83,23 @@ def calibrate_camera(corners_x = CORNERS_X,
             img_size = (img.shape[1], img.shape[0])
 
             dst = cv2.undistort(img, mtx, dist, None, mtx)
-            cv2.imwrite('test_images/test1_undist.jpg',dst)
 
             # Visualize undistortion
-            """
-            f, (ax1, ax2) = plt.subplots(1, 2, figsize=(20,10))
-            ax1.imshow(img)
-            ax1.set_title('Original Image', fontsize=30)
-            ax2.imshow(dst)
-            ax2.set_title('Undistorted Image', fontsize=30)
-            plt.show()
-            """
             show_undistorted_images(img, dst)
 
-def undistort(
+def undistort(img,
         calibration_file = CALIBRATION_FILE_NAME,
-        distorted_file="camera_cal/calibration1.jpg",
         visual=False):
     """
     Undistort a image using calibratoin saved in a specified file
     :param calibration_file: The file with calibration data
-    :param distorted_file: The image file to be undistorted
+    :param img: The image to be undistorted
     :param visual: If true, show the progress
     :return: The distorted image
     """
     dist_pickle = pickle.load(open(calibration_file, mode='rb'))
     mtx = dist_pickle["mtx"]
     dist = dist_pickle["dist"]
-    img = cv2.imread(distorted_file)
     dst = cv2.undistort(img, mtx, dist, None, mtx)
     if visual:
         show_undistorted_images(img, dst)
@@ -123,13 +112,14 @@ def show_undistorted_images(org, undist):
     :param undist: The undistorted image
     :return:
     """
+    orgr = cv2.cvtColor(org, cv2.COLOR_BGR2RGB)
+    undistr = cv2.cvtColor(undist, cv2.COLOR_BGR2RGB)
     f, (ax1, ax2) = plt.subplots(1, 2, figsize=(20,10))
-    ax1.imshow(org)
+    ax1.imshow(orgr)
     ax1.set_title('Original Image', fontsize=30)
-    ax2.imshow(undist)
+    ax2.imshow(undistr)
     ax2.set_title('Undistorted Image', fontsize=30)
     plt.show()
-
 
 def main():
     parser = argparse.ArgumentParser(description='Camera Calibration')
@@ -147,9 +137,7 @@ def main():
         calibrate_camera(visual=args.visual)
 
     if args.undistort:
-        undistort(
-            distorted_file=args.undistort,
-            visual=True)
+        undistort(cv2.imread(args.undistort), visual=True)
 
 
 if __name__ == '__main__':
