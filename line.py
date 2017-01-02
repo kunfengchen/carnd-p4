@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 ### REF: ported from the class material
 
@@ -31,7 +32,7 @@ class Line():
     Checking that they are separated by approximately the right distance horizontally
     Checking that they are roughly parallel
 """
-
+"""
 # Generate some fake data to represent lane-line pixels
 yvals = np.linspace(0, 100, num=101)*7.2  # to cover same y-range as image
 leftx = np.array([200 + (elem**2)*4e-4 + np.random.randint(-50, high=51)
@@ -55,9 +56,9 @@ plt.ylim(0, 720)
 plt.plot(left_fitx, yvals, color='green', linewidth=3)
 plt.plot(right_fitx, yvals, color='green', linewidth=3)
 plt.gca().invert_yaxis() # to visualize as we do the images
+"""
 
-
-
+"""
 # Define conversions in x and y from pixels space to meters
 ym_per_pix = 30/720 # meters per pixel in y dimension
 xm_per_pix = 3.7/700 # meteres per pixel in x dimension
@@ -90,9 +91,16 @@ newwarp = cv2.warpPerspective(color_warp, Minv, (image.shape[1], image.shape[0])
 # Combine the result with the original image
 result = cv2.addWeighted(undist, 1, newwarp, 0.3, 0)
 plt.imshow(result)
+"""
 
+def get_line_histogram(img):
+    histogram = np.sum(img[img.shape[0]/2:,:], axis=0)
+    print(histogram.shape)
+    print(histogram)
+    # plt.plot(histogram)
+    return histogram
 
+def show_historgram(hist):
+    plt.plot(hist)
+    plt.show()
 
-
-histogram = np.sum(img[img.shape[0]/2:,:], axis=0)
-plt.plot(histogram)

@@ -58,8 +58,8 @@ def cal_warp_points(img):
     """
     img_w = img.shape[1]
     img_h = img.shape[0]
-    top_gap = img_w / 9 # the x distance for src top points
-    top_y = img_h * 6 / 10  # the y position for src top points
+    top_gap = img_w * 15 / 100 # the x distance for src top points
+    top_y = img_h * 62 / 100  # the y position for src top points
     src_ps = np.float32(
         [[(img_w+top_gap)/2, top_y], # top right
          [img_w, img_h], # bottom right
