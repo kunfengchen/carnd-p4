@@ -1,11 +1,13 @@
-import cv2
 import argparse
+import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
 import camera_cal
 
-def warp_img(img, src, dst):
+### REF: ported from class material
+
+def warp_image(img, src, dst):
     """
     Perspective transform a image
     :param img: Input image
@@ -16,11 +18,13 @@ def warp_img(img, src, dst):
     img_size = (img.shape[1], img.shape[0])
     # Given src and dst points, calculate the perspective transform matrix
     M = cv2.getPerspectiveTransform(src, dst)
+    # The inversed
+    Minv = cv2.getPerspectiveTransform(dst, src)
     # Warp the image using OpenCV warpPerspective()
     warped = cv2.warpPerspective(img, M, img_size)
 
     # Return the resulting image and matrix
-    return warped, M
+    return warped, M, Minv
 
 def show_two_images(src, dst,
                     src_points, dst_points,
@@ -46,6 +50,28 @@ def show_two_images(src, dst,
     ax2.set_title(title_dst, fontsize=30)
     plt.show()
 
+def cal_warp_points(img):
+    """
+    Get the src and dst points for the input of the warp image
+    :param img: The input image to get the warp points
+    :return: src and dst points
+    """
+    img_w = img.shape[1]
+    img_h = img.shape[0]
+    top_gap = img_w / 9 # the x distance for src top points
+    top_y = img_h * 6 / 10  # the y position for src top points
+    src_ps = np.float32(
+        [[(img_w+top_gap)/2, top_y], # top right
+         [img_w, img_h], # bottom right
+         [0, img_h],  # bottom left
+         [(img_w-top_gap)/2 - 25, top_y]])  # top left
+    dst_ps =  np.float32(
+        [[img_w, 0], # top right
+         [img_w, img_h], # bottom right
+         [0, img_h],  # bottom left
+         [0, 0]])  # top left
+    return src_ps, dst_ps
+
 ## Main function
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -54,17 +80,10 @@ if __name__ == '__main__':
         default="test_images/test1.jpg",
         help='Warp the image')
     args = parser.parse_args()
-    src_ps = np.float32([[717, 435], # top right
-                      [1125, 705], # bottom right
-                      [258, 705],  # bottom left
-                      [615, 435]])  # top left
-    dst_ps = np.float32([[1125, 200], # top right
-                      [1125, 700], # bottom right
-                      [258, 700],  # bottom left
-                      [258, 200]])  # top left
     img = cv2.imread(args.warp)
     undistorted = camera_cal.undistort(img)
-    warped, M = warp_img(undistorted, src_ps, dst_ps)
+    src_ps, dst_ps = cal_warp_points(img)
+    warped, M, _ = warp_image(undistorted, src_ps, dst_ps)
     show_two_images(img, warped,
                     src_ps, dst_ps,
                     title_src="Unditorted Image",

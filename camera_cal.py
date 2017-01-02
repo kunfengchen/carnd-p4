@@ -1,10 +1,12 @@
-### REF: https://github.com/udacity/CarND-Camera-Calibration/blob/master/camera_calibration.ipynb
 import argparse
 import numpy as np
 import cv2
 import glob
 import matplotlib.pyplot as plt
 import pickle
+
+### REF: https://github.com/udacity/CarND-Camera-Calibration/blob/master/camera_calibration.ipynb
+### REF: ported from class material
 
 # Default calibration file name
 CALIBRATION_FILE_NAME = "camera_cal/camera_dist.p"
