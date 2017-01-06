@@ -23,9 +23,9 @@ class Line():
         #difference in fit coefficients between last and new fits
         self.diffs = np.array([0,0,0], dtype='float')
         #x values for detected line pixels
-        self.allx = None
+        self.allx = []
         #y values for detected line pixels
-        self.ally = None
+        self.ally = []
 
 """
     Checking that they have similar curvature
@@ -94,9 +94,9 @@ plt.imshow(result)
 """
 
 def get_line_histogram(img):
-    histogram = np.sum(img[img.shape[0]/2:,:], axis=0)
-    print(histogram.shape)
-    print(histogram)
+    histogram = np.sum(img, axis=0)
+    # print(histogram.shape)
+    # print(histogram)
     # plt.plot(histogram)
     return histogram
 
