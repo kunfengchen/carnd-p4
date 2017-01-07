@@ -68,7 +68,7 @@ def detect_line_image(img_name, visual=False):
     peak_offset = 50
     land_detect_width = 100
 
-    for frame_n in range(int(n_frame/2)):
+    for frame_n in range(int(n_frame)):
         frame_h = int(warped_img.shape[0]/n_frame)  # frame height
 
         frame_y_1 = frame_h*(n_frame-frame_n-1)
@@ -86,17 +86,25 @@ def detect_line_image(img_name, visual=False):
         norm_hist = np.convolve(hist, np.ones(n_win)/n_win, mode='same')
         norm_peak_ind = signal.find_peaks_cwt(norm_hist, np.arange(90, 100))
         n_peaks = len(norm_peak_ind)
-        print("  Found " + str(n_peaks) + "peaks")
+        peak_ind = 0  # peak index
+        print("Found " + str(n_peaks) + "peaks at window " + str(frame_n))
         if n_peaks > 1:
             # clip at 20
             # norm_hist[norm_hist < 20] = 0
 
             # Find pixels
+
             for l in range(0, 2): # left and right lanes
-                peakx = norm_peak_ind[l] - peak_offset;
+                peakx = norm_peak_ind[peak_ind] - peak_offset;
+                peak_ind += 1
+                if peakx < 0 & peak_ind < n_peaks: # left boundary of x
+                    # get the next peak
+                    peakx = norm_peak_ind[peak_ind] - peak_offset;
+                    peak_ind += 1
+
                 find_box = (peakx, frame_y_1, land_detect_width, frame_h)
                 find_boxs.append(find_box)
-                # print(find_box)
+                print(find_box)
                 non_zero_pixels = cv2.findNonZero(
                     np.array(frame_img[:, find_box[0]:find_box[0]+find_box[2]], np.uint8))
 
@@ -108,6 +116,7 @@ def detect_line_image(img_name, visual=False):
                     lines[l].allx.extend(found_xs)
                     lines[l].ally.extend(found_ys)
 
+
     # Fit lines
     for l in range(0 ,2): # left and right lands
         lines[l].fit_poly_line()
@@ -117,8 +126,6 @@ def detect_line_image(img_name, visual=False):
     newwarp = cv2.warpPerspective(color_warp_img, Minv, (color_warp_img.shape[1], color_warp_img.shape[0]))
     # Combine the result with the original image
     result = cv2.addWeighted(undist_img, 1, newwarp, 0.3, 0)
-    # plt.imshow(result)
-
 
     if visual:
         #show_xy(hist_peak_ind, hist[hist_peak_ind])
@@ -134,11 +141,7 @@ def detect_line_image(img_name, visual=False):
         show_horizontcal_images(color_warp_img, newwarp, newwarp)
         show()
 
-        # show_polts((hist, norm_hist, dif_hist))
-        # show_historgram(hist)
-
     return result
-
 
 
 def detect_line_video(video_name):
@@ -153,7 +156,7 @@ if __name__ == '__main__':
         help='Calibrate the camera')
     parser.add_argument(
         '--image',
-        default="test_images/test1.jpg",
+        default="test_images/test2.jpg",
         help='image to be processed')
     parser.add_argument(
         '--video',
