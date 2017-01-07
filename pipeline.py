@@ -41,6 +41,19 @@ def calibrate():
     print("Calirating the camera ...")
     calibrate_camera(visual=False)
 
+def near_find_boxs(x, find_boxs):
+    range = 50
+    if x < 0:  # outside boundary
+        return False
+    if (find_boxs is None) | (len(find_boxs) < 2):  # Need first two boxs (left and right land)
+        return True
+    for b in find_boxs:
+        left = b[0] - range
+        right = b[0] + b[2] + range
+        if x > left and x < right:
+            return True
+    return False
+
 
 def detect_line_image(img_name, visual=False):
     print("Detecting the lines ...")
@@ -68,7 +81,7 @@ def detect_line_image(img_name, visual=False):
     peak_offset = 50
     land_detect_width = 100
 
-    for frame_n in range(int(n_frame)):
+    for frame_n in range(int(n_frame*4/5)):  # skip top portion
         frame_h = int(warped_img.shape[0]/n_frame)  # frame height
 
         frame_y_1 = frame_h*(n_frame-frame_n-1)
@@ -87,7 +100,7 @@ def detect_line_image(img_name, visual=False):
         norm_peak_ind = signal.find_peaks_cwt(norm_hist, np.arange(90, 100))
         n_peaks = len(norm_peak_ind)
         peak_ind = 0  # peak index
-        print("Found " + str(n_peaks) + "peaks at window " + str(frame_n))
+        # print("Found " + str(n_peaks) + " peaks at window " + str(frame_n))
         if n_peaks > 1:
             # clip at 20
             # norm_hist[norm_hist < 20] = 0
@@ -95,16 +108,18 @@ def detect_line_image(img_name, visual=False):
             # Find pixels
 
             for l in range(0, 2): # left and right lanes
+                # print("l=" + str(l) + " peak_ind=" + str(peak_ind))
                 peakx = norm_peak_ind[peak_ind] - peak_offset;
                 peak_ind += 1
-                if peakx < 0 & peak_ind < n_peaks: # left boundary of x
-                    # get the next peak
-                    peakx = norm_peak_ind[peak_ind] - peak_offset;
-                    peak_ind += 1
+                if not near_find_boxs(peakx, find_boxs[-2:]):
+                    if peak_ind < n_peaks:
+                        # get the next peak
+                        peakx = norm_peak_ind[peak_ind] - peak_offset;
+                        peak_ind += 1
 
                 find_box = (peakx, frame_y_1, land_detect_width, frame_h)
                 find_boxs.append(find_box)
-                print(find_box)
+                # print(find_box)
                 non_zero_pixels = cv2.findNonZero(
                     np.array(frame_img[:, find_box[0]:find_box[0]+find_box[2]], np.uint8))
 
@@ -156,7 +171,7 @@ if __name__ == '__main__':
         help='Calibrate the camera')
     parser.add_argument(
         '--image',
-        default="test_images/test2.jpg",
+        default="test_images/test5.jpg",
         help='image to be processed')
     parser.add_argument(
         '--video',
