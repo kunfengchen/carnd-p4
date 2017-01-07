@@ -14,6 +14,8 @@ class Line():
         self.bestx = None
         #polynomial coefficients averaged over the last n iterations
         self.best_fit = None
+        #ploynamail 1d
+        self.best_fit_p = None
         #polynomial coefficients for the most recent fit
         self.current_fit = [np.array([False])]
         #radius of curvature of the line in some units
@@ -26,6 +28,10 @@ class Line():
         self.allx = []
         #y values for detected line pixels
         self.ally = []
+
+    def fit_poly_line(self):
+        self.best_fit = np.polyfit(self.ally, self.allx, 2)
+        self.best_fit_p = np.poly1d(self.best_fit)
 
 """
     Checking that they have similar curvature
