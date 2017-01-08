@@ -55,10 +55,14 @@ def near_find_boxs(x, find_boxs):
     return False
 
 
-def detect_line_image(img_name, visual=False):
+def detect_line_image_file(file_name, visual=False):
+    # load the image from file
+    input_img = cv2.imread(file_name)
+    return detect_line_image(input_img, visual=visual)
+
+
+def detect_line_image(input_img, visual=False):
     print("Detecting the lines ...")
-    # load the image
-    input_img = cv2.imread(img_name)
     # undistort the image
     undist_img = undistort(input_img, visual=False)
     # if visual:
@@ -160,7 +164,19 @@ def detect_line_image(img_name, visual=False):
 
 
 def detect_line_video(video_name):
-    pass
+    video_out_name = "out.mp4"
+    cap = cv2.VideoCapture(video_name)
+    count = 0
+    while cap.isOpened():
+        ret, frame = cap.read()
+        cv2.imshow('window-name', detect_line_image(frame))
+        #if (count%10) == 0:
+        #    cv2.imwrite("frame%d.jpg" % count, frame)
+        count += 1
+        if cv2.waitKey(10) & 0xFF == ord('q'):
+            break
+    cap.release()
+    cap.destroyAllWindows()
 
 
 ## Main function
@@ -171,7 +187,8 @@ if __name__ == '__main__':
         help='Calibrate the camera')
     parser.add_argument(
         '--image',
-        default="test_images/test5.jpg",
+        #default="test_images/test6.jpg",
+        default="frame10.jpg",
         help='image to be processed')
     parser.add_argument(
         '--video',
@@ -182,6 +199,6 @@ if __name__ == '__main__':
     if args.calibrate_camera:
         calibrate()
     if args.image:
-        detect_line_image(args.image, visual=True)
+        detect_line_image_file(args.image, visual=True)
     if args.video:
         detect_line_video(args.video)
