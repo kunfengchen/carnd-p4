@@ -62,7 +62,7 @@ def detect_line_image_file(file_name, visual=False):
 
 
 def detect_line_image(input_img, visual=False):
-    print("Detecting the lines ...")
+    # print("Detecting the lines ...")
     # undistort the image
     undist_img = undistort(input_img, visual=False)
     # if visual:
@@ -146,6 +146,13 @@ def detect_line_image(input_img, visual=False):
     # Combine the result with the original image
     result = cv2.addWeighted(undist_img, 1, newwarp, 0.3, 0)
 
+    # Write land information
+    info1 = "Radius of Curvature = " + str(3.0) + " (m)"
+    info2 = "Vehicle is " + str(2.0) + " (m) left of center"
+    font = cv2.FONT_HERSHEY_COMPLEX
+    cv2.putText(result, info1, (20, 50), font, 1, (255, 255, 255), 3)
+    cv2.putText(result, info2, (20, 100), font, 1, (255, 255, 255), 3)
+
     if visual:
         #show_xy(hist_peak_ind, hist[hist_peak_ind])
         show_xy(norm_peak_ind, norm_hist[norm_peak_ind])
@@ -170,13 +177,14 @@ def detect_line_video(video_name):
     while cap.isOpened():
         ret, frame = cap.read()
         cv2.imshow('window-name', detect_line_image(frame))
-        #if (count%10) == 0:
+        if (count%10) == 0:
+            print("frame " + str(count))
         #    cv2.imwrite("frame%d.jpg" % count, frame)
         count += 1
         if cv2.waitKey(10) & 0xFF == ord('q'):
             break
     cap.release()
-    cap.destroyAllWindows()
+    cv2.destroyAllWindows()
 
 
 ## Main function
