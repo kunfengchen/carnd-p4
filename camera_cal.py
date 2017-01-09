@@ -89,8 +89,9 @@ def calibrate_camera(corners_x = CORNERS_X,
             # Visualize undistortion
             show_undistorted_images(img, dst)
 
+
 def undistort(img,
-        calibration_file = CALIBRATION_FILE_NAME,
+        dist_matrix = None,
         visual=False):
     """
     Undistort a image using calibratoin saved in a specified file
@@ -99,13 +100,18 @@ def undistort(img,
     :param visual: If true, show the progress
     :return: The distorted image
     """
-    dist_pickle = pickle.load(open(calibration_file, mode='rb'))
-    mtx = dist_pickle["mtx"]
-    dist = dist_pickle["dist"]
+    if  dist_matrix is None:
+        dist_matrix = load_dist_matrix()
+    mtx = dist_matrix["mtx"]
+    dist = dist_matrix["dist"]
     dst = cv2.undistort(img, mtx, dist, None, mtx)
     if visual:
         show_undistorted_images(img, dst)
     return dst
+
+def load_dist_matrix(
+        calibration_file = CALIBRATION_FILE_NAME):
+    return pickle.load(open(calibration_file, mode='rb'))
 
 def show_undistorted_images(org, undist):
     """
