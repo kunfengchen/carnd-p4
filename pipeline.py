@@ -10,8 +10,7 @@ from warp import warp_image, cal_warp_points
 from line import Line, get_line_histogram, show_historgram
 from view import show_main_images, show_horizontcal_images,\
     show_vertical_images, show_plots, show_pixels,\
-    show_fit_line, show_find_boxs,\
-    show_find_boxs, show_xy, show
+    show_fit_line, show_found_boxs, show_xy, show
 
 """
 Create a image process pipe line for line detection
@@ -36,22 +35,58 @@ def draw_line_image(warped_img, lines):
     return color_warp
 
 
-
 def calibrate():
     print("Calirating the camera ...")
     calibrate_camera(visual=False)
 
-def near_find_boxs(x, find_boxs):
+
+def check_find_box(lr, x, found_boxs):
+    """
+    Check if x is a good left land find box based on previous one
+    :param lr: lr = 0 left, lr=1 right land line
+    :param x: the top-left cornor of new find box
+    :param found_boxs: the previous found boxs
+    :return: True if x is a good next find box, False otherwise
+    """
+    # threshold ragne for stacking up the find boxs
     range = 50
+    # maximum x for right land
+    left_max_x = 600
+    # minimum x disstance between left and right lands
+    land_dist_min = 800
+    left_boxs = found_boxs[0]  # left boxs
+    right_boxs = found_boxs[1]  # right boxs
+    left_box = None if len(left_boxs) == 0 else left_boxs[-1] # previous right box
+    right_box = None if len(right_boxs) == 0 else right_boxs[-1] # previous right box
+
+    # print("check box:", lr, x, found_boxs)
     if x < 0:  # outside boundary
         return False
-    if (find_boxs is None) | (len(find_boxs) < 2):  # Need first two boxs (left and right land)
-        return True
-    for b in find_boxs:
-        left = b[0] - range
-        right = b[0] + b[2] + range
+
+    if lr == 0: # check for left line
+        if (left_box is None):
+            # print("The first right x")
+            return True if x < left_max_x else False
+        # Check if the box stacking up nicely
+        left = left_box[0] - range
+        right = left_box[0] + left_box[2] + range
         if x > left and x < right:
+            # print("On the stack")
             return True
+    else:  # check right box
+        if left_box is not None:
+            # For example: Frame # 70
+            # print("right land: check min dist" , x, left_box[0], land_dist_min)
+            if x > left_box[0] + land_dist_min: # not too close to right land
+                return True
+
+        # Check if stack up nicely
+        if right_box is not None:
+            left = right_box[0] - range
+            right = right_box[0] + right_box[2] + range
+            if x > left and x < right:
+                # print("On the stack")
+                return True
     return False
 
 
@@ -79,13 +114,14 @@ def detect_line_image(input_img, visual=False):
 
     ### Sliding window to detect lands
     # Line histogram
-    n_frame = 5 # number of frames
+    n_frame = 10 # number of frames
     lines = [Line(), Line()] # left and right land
-    find_boxs = []  # keep track of boxs for finding pixels
+    found_boxs = [[], [], []] # keep track of left, right, and bad boxs for finding pixels
+    is_good_box = False
     peak_offset = 50
     land_detect_width = 100
 
-    for frame_n in range(int(n_frame*4/5)):  # skip top portion
+    for frame_n in range(int(n_frame*10/10)):  # skip top portion
         frame_h = int(warped_img.shape[0]/n_frame)  # frame height
 
         frame_y_1 = frame_h*(n_frame-frame_n-1)
@@ -104,36 +140,43 @@ def detect_line_image(input_img, visual=False):
         norm_peak_ind = signal.find_peaks_cwt(norm_hist, np.arange(90, 100))
         n_peaks = len(norm_peak_ind)
         peak_ind = 0  # peak index
+        is_good_left_box = False  # If left box has been good.
+        # If the find_box good or not
         # print("Found " + str(n_peaks) + " peaks at window " + str(frame_n))
-        if n_peaks > 1:
-            # clip at 20
-            # norm_hist[norm_hist < 20] = 0
+        ### Find pixels
+        if n_peaks > 0:
+            for l in range(0, 2): # left and right lane lines
+                if (l == 1): # right land line
+                    if not is_good_left_box:
+                        peak_ind = 0  # reset peak_ind from the beginnig for the left land line
+                print("frame ", frame_n, "n_peaks", n_peaks, "l=" + str(l) + " peak_ind=" + str(peak_ind))
+                while not is_good_box and peak_ind < n_peaks: # advance to the next good box
+                    # get the next peak
+                    peakx = norm_peak_ind[peak_ind] - peak_offset
+                    peak_ind += 1
+                    find_box = (peakx, frame_y_1, land_detect_width, frame_h)
+                    is_good_box = check_find_box(l, peakx, found_boxs)
+                    if not is_good_box:
+                        if l == 1:  # both land lines failed
+                            found_boxs[2].append(find_box)  # keep track of bad boxs, also
+                    else:
+                        if l == 0:
+                            is_good_left_box = True
 
-            # Find pixels
-
-            for l in range(0, 2): # left and right lanes
-                # print("l=" + str(l) + " peak_ind=" + str(peak_ind))
-                peakx = norm_peak_ind[peak_ind] - peak_offset;
-                peak_ind += 1
-                if not near_find_boxs(peakx, find_boxs[-2:]):
-                    if peak_ind < n_peaks:
-                        # get the next peak
-                        peakx = norm_peak_ind[peak_ind] - peak_offset;
-                        peak_ind += 1
-
-                find_box = (peakx, frame_y_1, land_detect_width, frame_h)
-                find_boxs.append(find_box)
-                # print(find_box)
-                non_zero_pixels = cv2.findNonZero(
-                    np.array(frame_img[:, find_box[0]:find_box[0]+find_box[2]], np.uint8))
-
-                if non_zero_pixels is not None:
-                    found_xs = non_zero_pixels[:, 0, 0]
-                    found_xs = found_xs + peakx  # add the shift done by slicing
-                    found_ys = non_zero_pixels[:, 0, 1]
-                    found_ys = found_ys + frame_y_1  # add the frame height back
-                    lines[l].allx.extend(found_xs)
-                    lines[l].ally.extend(found_ys)
+                print("after while", l, is_good_box, peak_ind)
+                if is_good_box:
+                    found_boxs[l].append(find_box)
+                    non_zero_pixels = cv2.findNonZero(
+                        np.array(frame_img[:, find_box[0]:find_box[0]+find_box[2]], np.uint8))
+                    if non_zero_pixels is not None: # add found pixels into the line
+                        found_xs = non_zero_pixels[:, 0, 0]
+                        found_xs = found_xs + peakx  # add the shift done by slicing
+                        found_ys = non_zero_pixels[:, 0, 1]
+                        found_ys = found_ys + frame_y_1  # add the frame height back
+                        lines[l].allx.extend(found_xs)
+                        lines[l].ally.extend(found_ys)
+                is_good_box = False
+                is_good_left_box = False
 
 
     # Fit lines
@@ -161,7 +204,7 @@ def detect_line_image(input_img, visual=False):
             show_pixels(np.array(lines[l].allx), np.array(lines[l].ally))
             show_fit_line(lines[l])
         # print(find_boxs)
-        show_find_boxs(find_boxs)
+        show_found_boxs(found_boxs)
         show_plots((hist, norm_hist))
         show_main_images(result)
         show_horizontcal_images(color_warp_img, newwarp, newwarp)
@@ -174,11 +217,18 @@ def detect_line_video(video_name):
     video_out_name = "out.mp4"
     cap = cv2.VideoCapture(video_name)
     count = 0
+
+    # Video out
+    fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+    out = cv2.VideoWriter(video_out_name, fourcc, 20.0, (1280, 720))
     while cap.isOpened():
         ret, frame = cap.read()
-        cv2.imshow('window-name', detect_line_image(frame))
+        out_frame = detect_line_image(frame, visual=True)
+        out.write(out_frame)
+        cv2.imshow('window-name', out_frame)
+        print("frame " + str(count))
         if (count%10) == 0:
-            print("frame " + str(count))
+            pass
         #    cv2.imwrite("frame%d.jpg" % count, frame)
         count += 1
         if cv2.waitKey(10) & 0xFF == ord('q'):
@@ -196,7 +246,8 @@ if __name__ == '__main__':
     parser.add_argument(
         '--image',
         #default="test_images/test6.jpg",
-        default="frame10.jpg",
+        #default="frame190.jpg",
+        default="frame570.jpg",
         help='image to be processed')
     parser.add_argument(
         '--video',
@@ -208,5 +259,5 @@ if __name__ == '__main__':
         calibrate()
     if args.image:
         detect_line_image_file(args.image, visual=True)
-    if args.video:
-        detect_line_video(args.video)
+    #if args.video:
+    #    detect_line_video(args.video)

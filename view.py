@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
+from warp import cal_warp_points
 
 
 n_w = 4.0
@@ -26,6 +27,9 @@ def show_main_images(img1):
 
 def show_vertical_images(img1, img2, img3, img4):
     ax1_v.imshow(cv2.cvtColor(img1, cv2.COLOR_BGR2RGB))
+    src_ps, dst_ps = cal_warp_points(img2)
+    for p in src_ps:
+        ax2_v.plot(p[0], p[1], 'ro')
     ax2_v.imshow(img2, cmap='gray')
     ax3_v.imshow(img3, cmap='gray')
     ax4_v.imshow(img4, cmap='gray')
@@ -50,11 +54,23 @@ def show_xy(xs, ys):
 def show_fit_line(line):
     ax3_v.plot(line.best_fit_p(line.yvals), line.yvals, linewidth=3)
 
-def show_find_boxs(find_boxs):
-    for b in find_boxs:
+def show_found_boxs(found_boxs):
+    for b in found_boxs[0]:
         ax3_v.add_patch(
             Rectangle((b[0], b[1]), b[2], b[3],
                       color='yellow',
+                      fill=None,
+                      linewidth=2))
+    for b in found_boxs[1]:
+        ax3_v.add_patch(
+            Rectangle((b[0], b[1]), b[2], b[3],
+                      color='pink',
+                      fill=None,
+                      linewidth=2))
+    for b in found_boxs[2]:
+        ax3_v.add_patch(
+            Rectangle((b[0], b[1]), b[2], b[3],
+                      color='red',
                       fill=None,
                       linewidth=2))
 
