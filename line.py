@@ -5,9 +5,15 @@ import matplotlib.pyplot as plt
 
 # Define a class to receive the characteristics of each line detection
 class Line():
+
+    # Y values to cover same y-range as image
+    yvals = np.linspace(0, 100, num=101)*7.2
+
     def __init__(self):
         # was the line detected in the last iteration?
         self.detected = False
+        # number of previous lines
+        self.n_lines = 0
         # x values of the last n fits of the line
         self.recent_xfitted = []
         #average x values of the fitted line over the last n iterations
@@ -16,8 +22,12 @@ class Line():
         self.best_fit = None
         #ploynamail 1d
         self.best_fit_p = None
+        #polynomial coefficients in meter for the most recent fit
+        self.best_fit_meter = None
         #polynomial coefficients for the most recent fit
         self.current_fit = [np.array([False])]
+        #ploynamail 1d
+        self.current_fit_p = None
         #radius of curvature of the line in some units
         self.radius_of_curvature = None
         #distance in meters of vehicle center from the line
@@ -28,12 +38,33 @@ class Line():
         self.allx = []
         #y values for detected line pixels
         self.ally = []
-        # Y values to cover same y-range as image
-        self.yvals = np.linspace(0, 100, num=101)*7.2
+
 
     def fit_poly_line(self):
-        self.best_fit = np.polyfit(self.ally, self.allx, 2)
+        self.current_fit = np.polyfit(self.ally, self.allx, 2)
+        self.current_fit_p = np.poly1d(self.current_fit)
+        self.n_lines += 1
+        # calculate the average for previous lines
+        if self.n_lines == 1:
+            self.best_fit = self.current_fit
+
+        else:
+            self.best_fit = \
+                (self.best_fit *(self.n_lines -1) + self.current_fit)/self.n_lines
         self.best_fit_p = np.poly1d(self.best_fit)
+
+    def fit_poly_line_meter(self):
+        # Define conversions in x and y from pixels space to meters
+        ym_per_pix = 30/720 # meters per pixel in y dimension
+        xm_per_pix = 3.7/700 # meteres per pixel in x dimension
+        self.best_fit_meter = np.polyfit(
+            Line.yvals*ym_per_pix, self.best_fit_p(Line.yvals) *xm_per_pix, 2)
+
+    def get_curvature_radius(self, yval):
+        curve_rad = ((1 + (2*self.best_fit_meter[0]*yval + self.best_fit_meter[1])**2)**1.5) \
+                        /np.absolute(2*self.best_fit_meter[0])
+        return curve_rad
+
 
 """
     Checking that they have similar curvature
@@ -42,14 +73,11 @@ class Line():
 """
 
 """
-# Define conversions in x and y from pixels space to meters
-ym_per_pix = 30/720 # meters per pixel in y dimension
-xm_per_pix = 3.7/700 # meteres per pixel in x dimension
 
-left_fit_cr = np.polyfit(yvals*ym_per_pix, leftx*xm_per_pix, 2)
+
+
 right_fit_cr = np.polyfit(yvals*ym_per_pix, rightx*xm_per_pix, 2)
-left_curverad = ((1 + (2*left_fit_cr[0]*y_eval + left_fit_cr[1])**2)**1.5) \
-                /np.absolute(2*left_fit_cr[0])
+
 right_curverad = ((1 + (2*right_fit_cr[0]*y_eval + right_fit_cr[1])**2)**1.5) \
                  /np.absolute(2*right_fit_cr[0])
 # Now our radius of curvature is in meters

@@ -90,18 +90,9 @@ def check_find_box(lr, x, found_boxs):
 
     return False
 
-
-def detect_line_image_file(file_name, visual=False):
-    # load the image from file
-    input_img = cv2.imread(file_name)
-    return detect_line_image(input_img, visual=visual)
-
-
-def detect_line_image(
-        input_img,
-        dist_matrix=None,
-        visual=False):
-    # print("Detecting the lines ...")
+def get_pipe_images(input_img,
+                     dist_matrix=None,
+                     visual=False):
     # undistort the image
     undist_img = undistort(input_img, dist_matrix=dist_matrix, visual=False)
     # if visual:
@@ -113,17 +104,32 @@ def detect_line_image(
     # apply warp
     src_ps, dst_ps = cal_warp_points(input_img)
     warped_img, M, Minv = warp_image(thresh_img, src_ps, dst_ps)
-    if visual:
-        show_vertical_images(input_img, thresh_img, warped_img, warped_img)
+    return undist_img, thresh_img, warped_img, M, Minv
+
+
+def detect_line_image_file(file_name, visual=False):
+    # load the image from file
+    input_img = cv2.imread(file_name)
+    return detect_line_image(input_img, visual=visual)
+
+
+def detect_line_image(
+        input_img,
+        lines = [Line(), Line()], # left and right lane
+        dist_matrix=None,
+        visual=False):
+
+    undist_img, thresh_img, warped_img, M, Minv = get_pipe_images(input_img)
 
     ### Sliding window to detect lanes
     # Line histogram
     n_frame = 10 # number of frames
-    lines = [Line(), Line()] # left and right lane
+
     found_boxs = [[], [], []] # keep track of left, right, and bad boxs for finding pixels
     is_good_box = False
     peak_offset = 50
     lane_detect_width = 100
+    curvatures = [0, 0]  # curvatures in radius for left and right lanel lines
 
     for frame_n in range(int(n_frame*10/10)):  # skip top portion
         frame_h = int(warped_img.shape[0]/n_frame)  # frame height
@@ -183,6 +189,8 @@ def detect_line_image(
     # Fit lines
     for l in range(0 ,2): # left and right lanes
         lines[l].fit_poly_line()
+        lines[l].fit_poly_line_meter()
+        curvatures[l] = lines[l].get_curvature_radius(720)
 
     color_warp_img = draw_line_image(warped_img, lines)
     # Warp the blank back to original image space using inverse perspective matrix (Minv)
@@ -191,13 +199,14 @@ def detect_line_image(
     result = cv2.addWeighted(undist_img, 1, newwarp, 0.3, 0)
 
     # Write lane information
-    info1 = "Radius of Curvature = " + str(3.0) + " (m)"
+    info1 = "Radius of Curvature = " + str(curvatures[0]) + "," + str(curvatures[1]) + " (m)"
     info2 = "Vehicle is " + str(2.0) + " (m) left of center"
     font = cv2.FONT_HERSHEY_COMPLEX
     cv2.putText(result, info1, (20, 50), font, 1, (255, 255, 255), 3)
     cv2.putText(result, info2, (20, 100), font, 1, (255, 255, 255), 3)
 
     if visual:
+        show_vertical_images(undist_img, thresh_img, warped_img, warped_img)
         #show_xy(hist_peak_ind, hist[hist_peak_ind])
         show_xy(norm_peak_ind, norm_hist[norm_peak_ind])
         # show_xy(lines[0].allx, frame_y_2 - lines[0].ally - frame_h*(n_frame-frame_n-1))
@@ -220,6 +229,7 @@ def detect_line_video(video_name):
     video_out_name = "out.mp4"
     cap = cv2.VideoCapture(video_name)
     count = 0
+    lines = [Line(), Line()] # left and right lane lines
 
     # Video out
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
@@ -228,13 +238,17 @@ def detect_line_video(video_name):
         ret, frame = cap.read()
         if (count%1) == 0:
             if frame is not None:
-                out_frame = detect_line_image(frame, dist_matrix=dist_matrix, visual=True)
+                out_frame = detect_line_image(
+                    frame,
+                    lines,
+                    dist_matrix=dist_matrix,
+                    visual=True)
                 out.write(out_frame)
                 cv2.imshow('window-name', out_frame)
                 print("frame " + str(count))
         #    cv2.imwrite("frame%d.jpg" % count, frame)
         count += 1
-        if cv2.waitKey(5) & 0xFF == ord('q'):
+        if cv2.waitKey(2) & 0xFF == ord('q'):
             break
     cap.release()
     cv2.destroyAllWindows()
@@ -254,8 +268,8 @@ if __name__ == '__main__':
         help='image to be processed')
     parser.add_argument(
         '--video',
-    # default="project_video.mp4"
-        default="challenge_video.mp4"
+        default="project_video.mp4"
+        # default="challenge_video.mp4"
     )
     args = parser.parse_args()
 

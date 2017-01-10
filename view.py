@@ -52,7 +52,7 @@ def show_xy(xs, ys):
     ax4_v.plot(xs, ys, 'go')
 
 def show_fit_line(line):
-    ax3_v.plot(line.best_fit_p(line.yvals), line.yvals, linewidth=3)
+    ax3_v.plot(line.current_fit_p(line.yvals), line.yvals, linewidth=3)
 
 def show_found_boxs(found_boxs):
     for b in found_boxs[0]:
