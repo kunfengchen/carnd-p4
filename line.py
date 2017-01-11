@@ -8,6 +8,11 @@ class Line():
 
     # Y values to cover same y-range as image
     yvals = np.linspace(0, 100, num=101)*7.2
+    #the find box that detected the line pixels
+    # found_boxs[0] is left lines
+    # found_boxs[1] is for right lines
+    # found_boxs[2] is for bad lines
+    found_boxs = None
 
     def __init__(self):
         # was the line detected in the last iteration?
@@ -64,6 +69,18 @@ class Line():
         curve_rad = ((1 + (2*self.best_fit_meter[0]*yval + self.best_fit_meter[1])**2)**1.5) \
                         /np.absolute(2*self.best_fit_meter[0])
         return curve_rad
+
+
+    def get_roi(self):
+        """
+        Get the region of the interest
+        :return: left and right line rois
+        """
+        roi = [[],[]]  #left and right lines
+        for l in (0, 1):
+            for b in Line.found_boxs[l]:
+                roi[l].append((b[0], b[1]))  # append (x, y)
+
 
 
 """

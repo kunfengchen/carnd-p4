@@ -8,9 +8,7 @@ from camera_cal import calibrate_camera, undistort, load_dist_matrix, show_undis
 from color_pipe import color_pipeline, show_threshold_images
 from warp import warp_image, cal_warp_points
 from line import Line, get_line_histogram, show_historgram
-from view import show_main_images, show_horizontcal_images,\
-    show_vertical_images, show_plots, show_pixels,\
-    show_fit_line, show_found_boxs, show_xy, show
+from view import region_of_interest, View
 
 """
 Create a image process pipe line for line detection
@@ -106,41 +104,27 @@ def get_pipe_images(input_img,
     warped_img, M, Minv = warp_image(thresh_img, src_ps, dst_ps)
     return undist_img, thresh_img, warped_img, M, Minv
 
-
-def detect_line_image_file(file_name, visual=False):
-    # load the image from file
-    input_img = cv2.imread(file_name)
-    return detect_line_image(input_img, visual=visual)
-
-
-def detect_line_image(
-        input_img,
-        lines = [Line(), Line()], # left and right lane
-        dist_matrix=None,
-        visual=False):
-
-    undist_img, thresh_img, warped_img, M, Minv = get_pipe_images(input_img)
-
+def find_lines_sliding_windows(input_img,
+                               lines,
+                               view=None):
     ### Sliding window to detect lanes
     # Line histogram
     n_frame = 10 # number of frames
-
     found_boxs = [[], [], []] # keep track of left, right, and bad boxs for finding pixels
     is_good_box = False
     peak_offset = 50
     lane_detect_width = 100
-    curvatures = [0, 0]  # curvatures in radius for left and right lanel lines
 
     for frame_n in range(int(n_frame*10/10)):  # skip top portion
-        frame_h = int(warped_img.shape[0]/n_frame)  # frame height
+        frame_h = int(input_img.shape[0]/n_frame)  # frame height
 
         frame_y_1 = frame_h*(n_frame-frame_n-1)
         frame_y_2 = frame_y_1 + frame_h
 
         # print (frame_n, frame_y_1, frame_y_2)
-        frame_img = warped_img[
-                      frame_y_1:
-                      frame_y_2,:]
+        frame_img = input_img[
+                    frame_y_1:
+                    frame_y_2,:]
         hist = get_line_histogram(frame_img)
 
         n_win = 100 # number of windows
@@ -151,8 +135,6 @@ def detect_line_image(
         n_peaks = len(norm_peak_ind)
         peak_ind = 0  # peak index
         is_good_left_box = False  # If left box has been good.
-        # If the find_box good or not
-        # print("Found " + str(n_peaks) + " peaks at window " + str(frame_n))
         ### Find pixels
         if n_peaks > 0:
             for l in range(0, 2): # left and right lane lines
@@ -169,9 +151,6 @@ def detect_line_image(
                     if not is_good_box:
                         if l == 1:  # both lane lines failed
                             found_boxs[2].append(find_box)  # keep track of bad boxs, also
-
-
-                # print("after while", l, is_good_box, peak_ind)
                 if is_good_box:
                     found_boxs[l].append(find_box)
                     non_zero_pixels = cv2.findNonZero(
@@ -185,18 +164,82 @@ def detect_line_image(
                         lines[l].ally.extend(found_ys)
                 is_good_box = False
 
-
     # Fit lines
-    for l in range(0 ,2): # left and right lanes
+    for l in range(0 ,2): # left and right lane lines
         lines[l].fit_poly_line()
         lines[l].fit_poly_line_meter()
-        curvatures[l] = lines[l].get_curvature_radius(720)
+    Line.found_boxs = found_boxs
+    if view is not None:
+        view.show_xy(norm_peak_ind, norm_hist[norm_peak_ind])
+        view.show_found_boxs(found_boxs)
+        view.show_plots((hist, norm_hist))
+
+def detect_line_previous(input_img, lines, visual=False):
+    rois = Line.get_roi()
+    print (rois)
+    for l in (0, 1):
+        masked_img = region_of_interest(input_img, rois[l])
+        non_zero_pixels = cv2.findNonZero(
+            np.array(masked_img))
+        if non_zero_pixels is not None: # add found pixels into the line
+            found_xs = non_zero_pixels[:, 0, 0]
+            found_ys = non_zero_pixels[:, 0, 1]
+            lines[l].allx = found_xs
+            lines[l].ally = found_ys
+            # Fit lines
+    for l in range(0 ,2): # left and right lane lines
+        lines[l].fit_poly_line()
+        lines[l].fit_poly_line_meter()
+
+
+def detect_line_image_file(
+        file_name,
+        lines = [Line(), Line()], # left and right lane
+        dist_matrix=None,
+        view=None):
+    """
+    Detect lines from input image
+    :param file_name: the input image file name
+    :param dist_matrix: the ditortion matrix
+    :param visual: show pipeline visualization or not
+    :return: the output image with detected lines drawn
+    """
+    # load the image from file
+    input_img = cv2.imread(file_name)
+    return detect_line_image(input_img, lines, dist_matrix=dist_matrix, view=view)
+
+
+def detect_line_image(
+        input_img,
+        lines = [Line(), Line()], # left and right lane
+        dist_matrix=None,
+        view=None):
+    """
+    Detect lines from input image
+    :param file_name: the input image file name
+    :param dist_matrix: the ditortion matrix
+    :param visual: show pipeline visualization or not
+    :return: the output image with detected lines drawn
+    """
+    curvatures = [0, 0]  # curvatures in radius for left and right lanel lines
+
+    undist_img, thresh_img, warped_img, M, Minv = get_pipe_images(input_img)
+
+    if lines[0] is None or not lines[0].detected:
+        # detect new lines using sliding windows
+        find_lines_sliding_windows(warped_img, lines, view=view)
+    else:
+        # detect lines using previous frames/lines
+        detect_line_previous(warped_img, lines, view=view)
 
     color_warp_img = draw_line_image(warped_img, lines)
     # Warp the blank back to original image space using inverse perspective matrix (Minv)
     newwarp = cv2.warpPerspective(color_warp_img, Minv, (color_warp_img.shape[1], color_warp_img.shape[0]))
     # Combine the result with the original image
     result = cv2.addWeighted(undist_img, 1, newwarp, 0.3, 0)
+
+    for l in range(0 ,2): # left and right lanes
+        curvatures[l] = lines[l].get_curvature_radius(720)
 
     # Write lane information
     info1 = "Radius of Curvature = " + str(curvatures[0]) + "," + str(curvatures[1]) + " (m)"
@@ -205,20 +248,17 @@ def detect_line_image(
     cv2.putText(result, info1, (20, 50), font, 1, (255, 255, 255), 3)
     cv2.putText(result, info2, (20, 100), font, 1, (255, 255, 255), 3)
 
-    if visual:
-        show_vertical_images(undist_img, thresh_img, warped_img, warped_img)
-        #show_xy(hist_peak_ind, hist[hist_peak_ind])
-        show_xy(norm_peak_ind, norm_hist[norm_peak_ind])
-        # show_xy(lines[0].allx, frame_y_2 - lines[0].ally - frame_h*(n_frame-frame_n-1))
+    if view is not None:
+        view.show_vertical_images(undist_img, thresh_img, warped_img, warped_img)
+        #view.show_xy(hist_peak_ind, hist[hist_peak_ind])
+
+        # view.show_xy(lines[0].allx, frame_y_2 - lines[0].ally - frame_h*(n_frame-frame_n-1))
         for l in range(0 ,2): # left and right lanes
-            show_pixels(np.array(lines[l].allx), np.array(lines[l].ally))
-            show_fit_line(lines[l])
-        # print(find_boxs)
-        show_found_boxs(found_boxs)
-        show_plots((hist, norm_hist))
-        show_main_images(result)
-        show_horizontcal_images(color_warp_img, newwarp, newwarp)
-        show()
+            view.show_pixels(np.array(lines[l].allx), np.array(lines[l].ally))
+            view.show_fit_line(lines[l])
+        view.show_main_images(result)
+        view.show_horizontcal_images(color_warp_img, newwarp, newwarp)
+        #view.show()
 
     return result
 
@@ -231,6 +271,15 @@ def detect_line_video(video_name):
     count = 0
     lines = [Line(), Line()] # left and right lane lines
 
+    # test
+    view = View()
+    detect_line_image_file("frame580.jpg",
+                           lines=lines,
+                           dist_matrix=dist_matrix,
+                           view=view)
+    view.show()
+
+
     # Video out
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
     out = cv2.VideoWriter(video_out_name, fourcc, 20.0, (1280, 720))
@@ -242,7 +291,7 @@ def detect_line_video(video_name):
                     frame,
                     lines,
                     dist_matrix=dist_matrix,
-                    visual=True)
+                    view=None)
                 out.write(out_frame)
                 cv2.imshow('window-name', out_frame)
                 print("frame " + str(count))
@@ -276,6 +325,7 @@ if __name__ == '__main__':
     if args.calibrate_camera:
         calibrate()
     if args.image:
-        detect_line_image_file(args.image, visual=True)
+        view = View()
+        detect_line_image_file(args.image, view=view)
     if args.video:
         detect_line_video(args.video)
