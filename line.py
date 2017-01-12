@@ -13,6 +13,10 @@ class Line():
     # found_boxs[1] is for right lines
     # found_boxs[2] is for bad lines
     found_boxs = None
+    # meters per pixel in y dimension
+    ym_per_pix = 30/720
+    # meteres per pixel in x dimension
+    xm_per_pix = 3.7/700
 
     def __init__(self):
         # was the line detected in the last iteration?
@@ -59,12 +63,13 @@ class Line():
         self.best_fit_p = np.poly1d(self.best_fit)
         self.detected = True
 
+
     def fit_poly_line_meter(self):
         # Define conversions in x and y from pixels space to meters
-        ym_per_pix = 30/720 # meters per pixel in y dimension
-        xm_per_pix = 3.7/700 # meteres per pixel in x dimension
+
         self.best_fit_meter = np.polyfit(
-            Line.yvals*ym_per_pix, self.best_fit_p(Line.yvals) *xm_per_pix, 2)
+            Line.yvals*Line.ym_per_pix, self.best_fit_p(Line.yvals) *Line.xm_per_pix, 2)
+
 
     def get_curvature_radius(self, yval):
         curve_rad = ((1 + (2*self.best_fit_meter[0]*yval + self.best_fit_meter[1])**2)**1.5) \
@@ -72,6 +77,18 @@ class Line():
         return curve_rad
 
 
+    def get_off_center_as_left(self, yval=720, xcenter=730, lane_width=950):
+        """
+        Get how far away from the center lane as a left lane
+        :return: the meter away from the center. puls number means to the left
+        """
+        left_x = self.best_fit_p(yval)
+        left_center = left_x + lane_width/2
+        off_center_meter = (xcenter-left_center) * self.xm_per_pix
+        return off_center_meter
+
+
+    # Class method
     def get_roi():
         """
         Get the region of the interest
@@ -97,7 +114,7 @@ class Line():
         return roi
 
 
-    def check_simlilar_curvatures(self, line, margin=0.05, yval=360):
+    def check_simlilar_curvatures(self, line, margin=0.15, yval=360):
         """
         Check that tow lines have similar curvature
         :param line: the other line to compare
@@ -109,13 +126,14 @@ class Line():
         cur2 = line.get_curvature_radius(yval)
         dif = abs(cur1-cur2)
         dif_percent = dif/max(cur1, cur2)
+        # print(" check curvatures:", cur1, cur2, dif, dif_percent)
         result = True
         if dif_percent > margin:
             result = False
         return result
 
 
-    def check_distance(self, line, distance=850, margin=0.05, yval=720):
+    def check_distance(self, line, distance=950, margin=0.05, yval=720):
         """
         Check that tow lines are separated by approximately the right distance horizontally
         :param line: the other line to compare
@@ -146,21 +164,4 @@ class Line():
                 result = False
                 break
         return result
-
-
-"""
-
-
-
-right_fit_cr = np.polyfit(yvals*ym_per_pix, rightx*xm_per_pix, 2)
-
-right_curverad = ((1 + (2*right_fit_cr[0]*y_eval + right_fit_cr[1])**2)**1.5) \
-                 /np.absolute(2*right_fit_cr[0])
-# Now our radius of curvature is in meters
-print(left_curverad, 'm', right_curverad, 'm')
-# Example values: 3380.7 m    3189.3 m
-
-
-
-"""
 

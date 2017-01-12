@@ -9,7 +9,8 @@ from color_pipe import color_pipeline, show_threshold_images
 from warp import warp_image, cal_warp_points
 from line import Line
 from view import View
-from util import region_of_interest, get_line_histogram, show_historgram
+from util import region_of_interest,\
+    get_line_histogram, check_line_qualities, show_historgram
 
 """
 Create a image process pipe line for line detection
@@ -239,12 +240,16 @@ def detect_line_image(
     # Combine the result with the original image
     result = cv2.addWeighted(undist_img, 1, newwarp, 0.3, 0)
 
+    curv_tatal = 0
     for l in range(0 ,2): # left and right lanes
-        curvatures[l] = lines[l].get_curvature_radius(720)
+        curvatures[l] = lines[l].get_curvature_radius(360)  # mid y value
+        curv_tatal += curvatures[l]
 
-    # Write lane information
-    info1 = "Radius of Curvature = " + str(curvatures[0]) + "," + str(curvatures[1]) + " (m)"
-    info2 = "Vehicle is " + str(2.0) + " (m) left of center"
+    # Write lane informatio
+    curv = curv_tatal/2 #  take the average of left and right lane lines
+    off_center_meter = lines[0].get_off_center_as_left()  # get the off center distance in meter
+    info1 = "Radius of Curvature = {:8.2f} (m)".format(curv)
+    info2 = "Vehicle is {:6.2f} (m) left of center".format(off_center_meter)
     font = cv2.FONT_HERSHEY_COMPLEX
     cv2.putText(result, info1, (20, 50), font, 1, (255, 255, 255), 3)
     cv2.putText(result, info2, (20, 100), font, 1, (255, 255, 255), 3)
@@ -264,7 +269,7 @@ def detect_line_image(
     return result
 
 
-def detect_line_video(video_name):
+def detect_line_video(video_name, view=None, window_title="Advanced Line Finding"):
     dist_matrix = load_dist_matrix()
 
     video_out_name = "out.mp4"
@@ -290,18 +295,24 @@ def detect_line_video(video_name):
         ret, frame = cap.read()
         if (count%1) == 0:
             if frame is not None:
-                view = View()
                 out_frame = detect_line_image(
                     frame,
                     lines,
                     dist_matrix=dist_matrix,
                     view=view)
-                plot_frame = view.get_image()
+                if view is not None:
+                    plot_frame = view.get_image()
+                    cv2.imshow(window_title, plot_frame)
+                else:
+                    cv2.imshow(window_title, out_frame)
                 out.write(out_frame)
-                cv2.imshow('window-name', plot_frame)
+
+                if not check_line_qualities(lines):
+                    lines = [Line(), Line()] # Start new lines from scratch
                 print("frame " + str(count))
         #    cv2.imwrite("frame%d.jpg" % count, frame)
         count += 1
+
         if cv2.waitKey(2) & 0xFF == ord('q'):
             break
     cap.release()
@@ -333,4 +344,4 @@ if __name__ == '__main__':
         view = View()
         detect_line_image_file(args.image, view=view)
     if args.video:
-        detect_line_video(args.video)
+        detect_line_video(args.video, view=None)

@@ -58,13 +58,14 @@ def cal_warp_points(img):
     """
     img_w = img.shape[1]
     img_h = img.shape[0]
+    x_top_right_offset = -30 #  Fine tune for parallel lines
     # top_dis = img_w * 15 / 100 # the x distance for src top points
     top_dis = img_w * 18 / 100 # the x distance for src top points
     bottom_dis = img_w * 96/100 # the x distacen for src bottom points
     # top_y = img_h * 62 / 100  # the y position for src top points
     top_y = img_h * 65 / 100  # the y position for src top points
     src_ps = np.float32(
-        [[(img_w+top_dis)/2, top_y], # top right
+        [[(img_w+top_dis)/2+x_top_right_offset, top_y], # top right
          [(img_w+bottom_dis)/2, img_h], # bottom right
          [(img_w-bottom_dis)/2, img_h],  # bottom left
          [(img_w-top_dis)/2 - 25, top_y]])  # top left

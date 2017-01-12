@@ -31,6 +31,23 @@ def region_of_interest(img, vertices, view=None):
         view.ax4_v.imshow(mask)
     return masked_image
 
+def check_line_qualities(lines):
+    """
+    Check if the left and right lane lines still maintaining good qualities:
+      1. Similar distance
+      2. Parallel
+      3. Similar curvatures
+    :param lines: the left and right lane lines
+    :return: True if good qualities, False otherwise
+    """
+    res1 = lines[0].check_simlilar_curvatures(lines[1])
+    # print(" check curvature:", res1)
+    res2 = lines[0].check_distance(lines[1])
+    # print(" check distance:", res2)
+    res3 = lines[0].check_parallel(lines[1])
+    # print(" check parallel:", res3)
+    return (res1 and res2 and res3)
+
 
 def get_line_histogram(img):
     histogram = np.sum(img, axis=0)
