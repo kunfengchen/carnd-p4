@@ -57,6 +57,7 @@ class Line():
             self.best_fit = \
                 (self.best_fit *(self.n_lines -1) + self.current_fit)/self.n_lines
         self.best_fit_p = np.poly1d(self.best_fit)
+        self.detected = True
 
     def fit_poly_line_meter(self):
         # Define conversions in x and y from pixels space to meters
@@ -71,23 +72,81 @@ class Line():
         return curve_rad
 
 
-    def get_roi(self):
+    def get_roi():
         """
         Get the region of the interest
         :return: left and right line rois
         """
         roi = [[],[]]  #left and right lines
+
         for l in (0, 1):
+            boxs = Line.found_boxs[l]
+            for b in (0, -1): # first and last box
+                point = [boxs[b][0],boxs[b][1]]
+                roi[l].append(point)
+            for b in (-1, 0):
+                point = [boxs[b][0]+boxs[b][2], boxs[b][1]+boxs[b][3]]
+                roi[l].append(point)
+            """
             for b in Line.found_boxs[l]:
-                roi[l].append((b[0], b[1]))  # append (x, y)
+                point = [b[0], b[1]]
+                roi[l].append(point)  # append (x, y)
+                point = [b[0]+b[2], b[1]+b[3]]
+                roi[l].append(point)
+            """
+        return roi
 
 
+    def check_simlilar_curvatures(self, line, margin=0.05, yval=360):
+        """
+        Check that tow lines have similar curvature
+        :param line: the other line to compare
+        :param margin: margin threshold in percentage
+        :param yval: the y value to check the curvature
+        :return: True if the curvature difference is within the margin, False otherwise
+        """
+        cur1 = self.get_curvature_radius(yval)
+        cur2 = line.get_curvature_radius(yval)
+        dif = abs(cur1-cur2)
+        dif_percent = dif/max(cur1, cur2)
+        result = True
+        if dif_percent > margin:
+            result = False
+        return result
 
-"""
-    Checking that they have similar curvature
-    Checking that they are separated by approximately the right distance horizontally
-    Checking that they are roughly parallel
-"""
+
+    def check_distance(self, line, distance=850, margin=0.05, yval=720):
+        """
+        Check that tow lines are separated by approximately the right distance horizontally
+        :param line: the other line to compare
+        :param margin: margin threshold in percentage
+        :param yval: the y value to check the distance
+        :return: True is roughly the distance, False otherwise
+        """
+        dist = abs(line.best_fit_p(yval) - self.best_fit_p(yval))
+        error = abs(dist - distance)
+        error_percent = error/distance
+        result = True
+        if error_percent > margin:
+            result = False
+        return result
+
+
+    def check_parallel(self, line, distance=850, margin=0.05):
+        """
+        Check that two lines are roughly parallel
+        :param line: The other line to compare
+        :param margin: margin threshold in percentage
+        :return: True if roughly parallel, False otherwise
+        """
+        yvals = np.linspace(0, 100, num=11)*7.2
+        result = True
+        for y in yvals:
+            if not self.check_distance(line):
+                result = False
+                break
+        return result
+
 
 """
 
@@ -104,15 +163,4 @@ print(left_curverad, 'm', right_curverad, 'm')
 
 
 """
-
-def get_line_histogram(img):
-    histogram = np.sum(img, axis=0)
-    # print(histogram.shape)
-    # print(histogram)
-    # plt.plot(histogram)
-    return histogram
-
-def show_historgram(hist):
-    plt.plot(hist)
-    plt.show()
 

@@ -7,8 +7,9 @@ import scipy.signal as signal
 from camera_cal import calibrate_camera, undistort, load_dist_matrix, show_undistorted_images
 from color_pipe import color_pipeline, show_threshold_images
 from warp import warp_image, cal_warp_points
-from line import Line, get_line_histogram, show_historgram
-from view import region_of_interest, View
+from line import Line
+from view import View
+from util import region_of_interest, get_line_histogram, show_historgram
 
 """
 Create a image process pipe line for line detection
@@ -93,18 +94,14 @@ def get_pipe_images(input_img,
                      visual=False):
     # undistort the image
     undist_img = undistort(input_img, dist_matrix=dist_matrix, visual=False)
-    # if visual:
-    #    show_undistorted_images(img, undist_img)
     # apply thresholding for sobelx and HLS color space
     thresh_img = color_pipeline(input_img)
-    # if visual:
-    #    show_threshold_images(img, thresh_img)
     # apply warp
     src_ps, dst_ps = cal_warp_points(input_img)
     warped_img, M, Minv = warp_image(thresh_img, src_ps, dst_ps)
     return undist_img, thresh_img, warped_img, M, Minv
 
-def find_lines_sliding_windows(input_img,
+def detect_lines_sliding_windows(input_img,
                                lines,
                                view=None):
     ### Sliding window to detect lanes
@@ -174,13 +171,14 @@ def find_lines_sliding_windows(input_img,
         view.show_found_boxs(found_boxs)
         view.show_plots((hist, norm_hist))
 
-def detect_line_previous(input_img, lines, visual=False):
+
+def detect_lines_previous(input_img, lines, view=None):
     rois = Line.get_roi()
-    print (rois)
+    #print (rois)
     for l in (0, 1):
-        masked_img = region_of_interest(input_img, rois[l])
+        masked_img = region_of_interest(input_img, rois[l], view=view)
         non_zero_pixels = cv2.findNonZero(
-            np.array(masked_img))
+            np.array(masked_img, np.uint8))
         if non_zero_pixels is not None: # add found pixels into the line
             found_xs = non_zero_pixels[:, 0, 0]
             found_ys = non_zero_pixels[:, 0, 1]
@@ -190,6 +188,9 @@ def detect_line_previous(input_img, lines, visual=False):
     for l in range(0 ,2): # left and right lane lines
         lines[l].fit_poly_line()
         lines[l].fit_poly_line_meter()
+    if view is not None:
+        view.show_masked_img(masked_img)
+        # view.show_xy(norm_peak_ind, norm_hist[norm_peak_ind])
 
 
 def detect_line_image_file(
@@ -227,10 +228,10 @@ def detect_line_image(
 
     if lines[0] is None or not lines[0].detected:
         # detect new lines using sliding windows
-        find_lines_sliding_windows(warped_img, lines, view=view)
+        detect_lines_sliding_windows(warped_img, lines, view=view)
     else:
         # detect lines using previous frames/lines
-        detect_line_previous(warped_img, lines, view=view)
+        detect_lines_previous(warped_img, lines, view=view)
 
     color_warp_img = draw_line_image(warped_img, lines)
     # Warp the blank back to original image space using inverse perspective matrix (Minv)
@@ -249,7 +250,7 @@ def detect_line_image(
     cv2.putText(result, info2, (20, 100), font, 1, (255, 255, 255), 3)
 
     if view is not None:
-        view.show_vertical_images(undist_img, thresh_img, warped_img, warped_img)
+        view.show_vertical_images(undist_img, thresh_img, warped_img, None)
         #view.show_xy(hist_peak_ind, hist[hist_peak_ind])
 
         # view.show_xy(lines[0].allx, frame_y_2 - lines[0].ally - frame_h*(n_frame-frame_n-1))
@@ -272,13 +273,15 @@ def detect_line_video(video_name):
     lines = [Line(), Line()] # left and right lane lines
 
     # test
-    view = View()
-    detect_line_image_file("frame580.jpg",
-                           lines=lines,
-                           dist_matrix=dist_matrix,
-                           view=view)
+    """
+    for i in (0, 1, 2):
+        view = View()
+        detect_line_image_file("frame580.jpg",
+                               lines=lines,
+                               dist_matrix=dist_matrix,
+                               view=view)
     view.show()
-
+    """
 
     # Video out
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
@@ -287,13 +290,15 @@ def detect_line_video(video_name):
         ret, frame = cap.read()
         if (count%1) == 0:
             if frame is not None:
+                view = View()
                 out_frame = detect_line_image(
                     frame,
                     lines,
                     dist_matrix=dist_matrix,
-                    view=None)
+                    view=view)
+                plot_frame = view.get_image()
                 out.write(out_frame)
-                cv2.imshow('window-name', out_frame)
+                cv2.imshow('window-name', plot_frame)
                 print("frame " + str(count))
         #    cv2.imwrite("frame%d.jpg" % count, frame)
         count += 1
