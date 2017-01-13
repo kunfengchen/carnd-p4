@@ -18,19 +18,19 @@ Create a image process pipe line for line detection
 
 def draw_line_image(warped_img, lines):
     # Create an image to draw the lines on
-
     warp_zero = np.zeros_like(warped_img).astype(np.uint8)
     color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
 
     # Recast the x and y points into usable format for cv2.fillPoly()
-    pts_left = np.array(
-        [np.transpose(np.vstack([lines[0].best_fit_p(lines[0].yvals), lines[0].yvals]))])
-    pts_right = np.array(
-        [np.flipud(np.transpose(np.vstack([lines[1].best_fit_p(lines[1].yvals), lines[1].yvals])))])
-    pts = np.hstack((pts_left, pts_right))
+    if lines[0].best_fit_p is not None and lines[1].best_fit_p is not None:
+        pts_left = np.array(
+            [np.transpose(np.vstack([lines[0].best_fit_p(lines[0].yvals), lines[0].yvals]))])
+        pts_right = np.array(
+            [np.flipud(np.transpose(np.vstack([lines[1].best_fit_p(lines[1].yvals), lines[1].yvals])))])
+        pts = np.hstack((pts_left, pts_right))
 
-    # Draw the lane onto the warped blank image
-    cv2.fillPoly(color_warp, np.int_([pts]), (0,255, 0))
+        # Draw the lane onto the warped blank image
+        cv2.fillPoly(color_warp, np.int_([pts]), (0,255, 0))
 
     return color_warp
 
@@ -53,7 +53,7 @@ def check_find_box(lr, x, found_boxs):
     # maximum x for right lane
     left_max_x = 600
     # minimum x disstance between left and right lanes
-    lane_dist_min = 800
+    lane_dist_min = 750
     left_boxs = found_boxs[0]  # left boxs
     right_boxs = found_boxs[1]  # right boxs
     left_box = None if len(left_boxs) == 0 else left_boxs[-1] # previous right box
@@ -76,7 +76,7 @@ def check_find_box(lr, x, found_boxs):
     else:  # check right box
         if left_box is not None:
             # For example: Frame # 70
-            # print("right lane: check min dist" , x, left_box[0], lane_dist_min)
+            #print("right lane: check min dist" , x-left_box[0], lane_dist_min)
             if x > left_box[0] + lane_dist_min: # not too close to right lane
                 return True
 
@@ -165,7 +165,7 @@ def detect_lines_sliding_windows(input_img,
     # Fit lines
     for l in range(0 ,2): # left and right lane lines
         lines[l].fit_poly_line()
-        lines[l].fit_poly_line_meter()
+
     Line.found_boxs = found_boxs
     if view is not None:
         view.show_xy(norm_peak_ind, norm_hist[norm_peak_ind])
@@ -174,10 +174,11 @@ def detect_lines_sliding_windows(input_img,
 
 
 def detect_lines_previous(input_img, lines, view=None):
-    rois = Line.get_roi()
+    #rois = Line.get_roi()
     #print (rois)
     for l in (0, 1):
-        masked_img = region_of_interest(input_img, rois[l], view=view)
+        # masked_img = region_of_interest(input_img, rois[l], view=view)
+        masked_img = region_of_interest(input_img, lines[l].get_best_roi(), view=view)
         non_zero_pixels = cv2.findNonZero(
             np.array(masked_img, np.uint8))
         if non_zero_pixels is not None: # add found pixels into the line
@@ -264,7 +265,7 @@ def detect_line_image(
             view.show_fit_line(lines[l])
         view.show_main_images(result)
         view.show_horizontcal_images(color_warp_img, newwarp, newwarp)
-        #view.show()
+        view.show()
 
     return result
 
@@ -293,24 +294,25 @@ def detect_line_video(video_name, view=None, window_title="Advanced Line Finding
     out = cv2.VideoWriter(video_out_name, fourcc, 20.0, (1280, 720))
     while cap.isOpened():
         ret, frame = cap.read()
-        if (count%1) == 0:
-            if frame is not None:
-                out_frame = detect_line_image(
-                    frame,
-                    lines,
-                    dist_matrix=dist_matrix,
-                    view=view)
-                if view is not None:
-                    plot_frame = view.get_image()
-                    cv2.imshow(window_title, plot_frame)
-                else:
-                    cv2.imshow(window_title, out_frame)
-                out.write(out_frame)
+        if frame is not None:
+            out_frame = detect_line_image(
+                frame,
+                lines,
+                dist_matrix=dist_matrix,
+                view=view)
+            if view is not None:
+                plot_frame = view.get_image()
+                cv2.imshow(window_title, plot_frame)
+                view.clear()
+            else:
+                cv2.imshow(window_title, out_frame)
+            out.write(out_frame)
 
-                if not check_line_qualities(lines):
-                    lines = [Line(), Line()] # Start new lines from scratch
-                print("frame " + str(count))
-        #    cv2.imwrite("frame%d.jpg" % count, frame)
+            if not check_line_qualities(lines):
+                lines = [Line(), Line()] # Start new lines from scratch
+        # cv2.imshow(window_title, frame)
+        # cv2.imwrite("v1frames/frame%d.jpg" % count, frame)
+        print("frame " + str(count))
         count += 1
 
         if cv2.waitKey(2) & 0xFF == ord('q'):
@@ -328,8 +330,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--image',
         #default="test_images/test6.jpg",
-        #default="frame190.jpg",
-        default="frame570.jpg",
+        default="v1frames/frame317.jpg",
         help='image to be processed')
     parser.add_argument(
         '--video',
@@ -337,11 +338,11 @@ if __name__ == '__main__':
         # default="challenge_video.mp4"
     )
     args = parser.parse_args()
-
+    #view = View()
+    view = None
     if args.calibrate_camera:
         calibrate()
-    if args.image:
-        view = View()
+    if args.image is not None:
         detect_line_image_file(args.image, view=view)
-    if args.video:
-        detect_line_video(args.video, view=None)
+    if args.video is not None:
+        detect_line_video(args.video, view=view)

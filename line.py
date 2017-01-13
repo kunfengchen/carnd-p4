@@ -50,34 +50,40 @@ class Line():
 
 
     def fit_poly_line(self):
-        self.current_fit = np.polyfit(self.ally, self.allx, 2)
-        self.current_fit_p = np.poly1d(self.current_fit)
-        self.n_lines += 1
-        # calculate the average for previous lines
-        if self.n_lines == 1:
-            self.best_fit = self.current_fit
-
+        if len(self.allx) < 2 or len(self.ally) <2:
+            self.detected = False
         else:
-            self.best_fit = \
-                (self.best_fit *(self.n_lines -1) + self.current_fit)/self.n_lines
-        self.best_fit_p = np.poly1d(self.best_fit)
-        self.detected = True
+            self.current_fit = np.polyfit(self.ally, self.allx, 2)
+            self.current_fit_p = np.poly1d(self.current_fit)
+            self.n_lines += 1
+            # calculate the average for previous lines
+            if self.n_lines == 1:
+                self.best_fit = self.current_fit
+
+            else:
+                self.best_fit = \
+                    (self.best_fit *(self.n_lines -1) + self.current_fit)/self.n_lines
+            self.best_fit_p = np.poly1d(self.best_fit)
+            self.fit_poly_line_meter()
+            self.detected = True
 
 
     def fit_poly_line_meter(self):
         # Define conversions in x and y from pixels space to meters
 
         self.best_fit_meter = np.polyfit(
-            Line.yvals*Line.ym_per_pix, self.best_fit_p(Line.yvals) *Line.xm_per_pix, 2)
+            Line.yvals*Line.ym_per_pix, self.best_fit_p(Line.yvals) * Line.xm_per_pix, 2)
 
 
     def get_curvature_radius(self, yval):
-        curve_rad = ((1 + (2*self.best_fit_meter[0]*yval + self.best_fit_meter[1])**2)**1.5) \
-                        /np.absolute(2*self.best_fit_meter[0])
+        curve_rad = 0
+        if self.best_fit_meter is not None:
+            curve_rad = ((1 + (2*self.best_fit_meter[0]*yval + self.best_fit_meter[1])**2)**1.5) \
+                            /np.absolute(2*self.best_fit_meter[0])
         return curve_rad
 
 
-    def get_off_center_as_left(self, yval=720, xcenter=730, lane_width=950):
+    def get_off_center_as_left(self, yval=720, xcenter=805, lane_width=950):
         """
         Get how far away from the center lane as a left lane
         :return: the meter away from the center. puls number means to the left
@@ -86,32 +92,6 @@ class Line():
         left_center = left_x + lane_width/2
         off_center_meter = (xcenter-left_center) * self.xm_per_pix
         return off_center_meter
-
-
-    # Class method
-    def get_roi():
-        """
-        Get the region of the interest
-        :return: left and right line rois
-        """
-        roi = [[],[]]  #left and right lines
-
-        for l in (0, 1):
-            boxs = Line.found_boxs[l]
-            for b in (0, -1): # first and last box
-                point = [boxs[b][0],boxs[b][1]]
-                roi[l].append(point)
-            for b in (-1, 0):
-                point = [boxs[b][0]+boxs[b][2], boxs[b][1]+boxs[b][3]]
-                roi[l].append(point)
-            """
-            for b in Line.found_boxs[l]:
-                point = [b[0], b[1]]
-                roi[l].append(point)  # append (x, y)
-                point = [b[0]+b[2], b[1]+b[3]]
-                roi[l].append(point)
-            """
-        return roi
 
 
     def check_simlilar_curvatures(self, line, margin=0.15, yval=360):
@@ -165,3 +145,36 @@ class Line():
                 break
         return result
 
+
+    def get_best_roi(self):
+        """
+        Get the region of the interest using the area of best fit line
+        :return:
+        """
+        yvals = np.linspace(0, 100, num=11)*7.2
+        w = 50 # half width of the ROI
+        roi = []
+        for y in yvals:
+            roi.append([self.best_fit_p(y)-w, y])
+        for y in yvals[::-1]:
+            roi.append([self.best_fit_p(y)+w, y])
+        return roi
+
+
+    # Class method
+    def get_roi():
+        """
+        Get the region of the interest using find boxes
+        :return: left and right line rois
+        """
+        roi = [[],[]]  #left and right lines
+
+        for l in (0, 1):
+            boxs = Line.found_boxs[l]
+            for b in (0, -1): # first and last box
+                point = [boxs[b][0],boxs[b][1]]
+                roi[l].append(point)
+            for b in (-1, 0):
+                point = [boxs[b][0]+boxs[b][2], boxs[b][1]+boxs[b][3]]
+                roi[l].append(point)
+        return roi
