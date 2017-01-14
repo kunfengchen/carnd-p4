@@ -107,13 +107,13 @@ def detect_lines_sliding_windows(input_img,
                                view=None):
     ### Sliding window to detect lanes
     # Line histogram
-    n_frame = 10 # number of frames
+    n_frame = 5 # number of frames
     found_boxs = [[], [], []] # keep track of left, right, and bad boxs for finding pixels
     is_good_box = False
     peak_offset = 50
     lane_detect_width = 100
 
-    for frame_n in range(n_frame):
+    for frame_n in range(0, n_frame):
         frame_h = int(input_img.shape[0]/n_frame)  # frame height
 
         frame_y_1 = frame_h*(n_frame-frame_n-1)

@@ -59,8 +59,7 @@ class Line():
             self.current_fit = np.polyfit(self.ally, self.allx, 2)
             self.current_fit_p = np.poly1d(self.current_fit)
             self.recent_xfitted = self.current_fit_p(Line.yvals)
-            # self.n_lines += 1
-            # calculate the average for previous lines
+
             if self.best_fit is None:  # the first estimate
                 self.best_fit = self.current_fit
                 self.detected = True
@@ -188,7 +187,7 @@ class Line():
         :return:
         """
         yvals = np.linspace(0, 100, num=11)*7.2
-        w = 50 # half width of the ROI
+        w = 20 # half width of the ROI
         roi = []
         for y in yvals:
             roi.append([self.best_fit_p(y)-w, y])
