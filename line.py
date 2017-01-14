@@ -21,8 +21,10 @@ class Line():
     def __init__(self):
         # was the line detected in the last iteration?
         self.detected = False
-        # number of previous lines
-        self.n_lines = 0
+        # number of failed detection so far
+        self.n_failed_detection = 0
+        # threshold for failed detection
+        self.failed_threshold = 15
         # x values of the last n fits of the line
         self.recent_xfitted = []
         #average x values of the fitted line over the last n iterations
@@ -53,19 +55,53 @@ class Line():
         if len(self.allx) < 2 or len(self.ally) <2:
             self.detected = False
         else:
+            last_fit = self.current_fit
             self.current_fit = np.polyfit(self.ally, self.allx, 2)
             self.current_fit_p = np.poly1d(self.current_fit)
-            self.n_lines += 1
+            self.recent_xfitted = self.current_fit_p(Line.yvals)
+            # self.n_lines += 1
             # calculate the average for previous lines
-            if self.n_lines == 1:
+            if self.best_fit is None:  # the first estimate
                 self.best_fit = self.current_fit
-
+                self.detected = True
             else:
-                self.best_fit = \
-                    (self.best_fit *(self.n_lines -1) + self.current_fit)/self.n_lines
-            self.best_fit_p = np.poly1d(self.best_fit)
-            self.fit_poly_line_meter()
-            self.detected = True
+                mse_thred = 200  # threshold in mse for bad fitting
+                # self.diffs = last_fit - self.current_fit
+                self.diffs = self.best_fit - self.current_fit
+                mse = np.mean(self.diffs**2)
+                # print("fit diffs", self.diffs.shape, self.diffs, mse)
+                if (mse < mse_thred):
+                    k = 0.9
+                    #self.best_fit = \
+                    #    (self.best_fit *(self.n_lines -1) + self.current_fit)/self.n_lines
+                    self.best_fit = self.best_fit * k + self.current_fit * (1-k)
+                    self.detected = True
+                else:
+                    # print(" bad fit")
+                    # don't update the best_fit
+                    self.add_one_fail_detection()
+                    self.detected = False
+            if self.detected:
+                self.best_fit_p = np.poly1d(self.best_fit)
+                self.fit_poly_line_meter()
+        self.clear_detected_xs()
+        self.clear_detected_ys()
+
+
+    def add_detected_xs(self, xs):
+        self.allx.extend(xs)
+
+
+    def add_detected_ys(self, ys):
+        self.ally.extend(ys)
+
+
+    def clear_detected_xs(self):
+        self.allx = []
+
+
+    def clear_detected_ys(self):
+        self.ally = []
 
 
     def fit_poly_line_meter(self):
@@ -113,7 +149,7 @@ class Line():
         return result
 
 
-    def check_distance(self, line, distance=950, margin=0.05, yval=720):
+    def check_distance(self, line, distance=800, margin=0.05, yval=720):
         """
         Check that tow lines are separated by approximately the right distance horizontally
         :param line: the other line to compare
@@ -159,6 +195,19 @@ class Line():
         for y in yvals[::-1]:
             roi.append([self.best_fit_p(y)+w, y])
         return roi
+
+
+    def add_one_fail_detection(self):
+        self.n_failed_detection += 1
+
+
+    def should_start_new_line(self):
+        """
+        Check to see to the line still reusable for the next frame detection
+        If not, discard this one and use a new instance.
+        :return:
+        """
+        return self.n_failed_detection > self.failed_threshold
 
 
     # Class method

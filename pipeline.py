@@ -10,7 +10,7 @@ from warp import warp_image, cal_warp_points
 from line import Line
 from view import View
 from util import region_of_interest,\
-    get_line_histogram, check_line_qualities, show_historgram
+    get_line_histogram, check_line_qualities, check_line_parallel, show_historgram
 
 """
 Create a image process pipe line for line detection
@@ -113,7 +113,7 @@ def detect_lines_sliding_windows(input_img,
     peak_offset = 50
     lane_detect_width = 100
 
-    for frame_n in range(int(n_frame*10/10)):  # skip top portion
+    for frame_n in range(n_frame):
         frame_h = int(input_img.shape[0]/n_frame)  # frame height
 
         frame_y_1 = frame_h*(n_frame-frame_n-1)
@@ -158,15 +158,15 @@ def detect_lines_sliding_windows(input_img,
                         found_xs = found_xs + peakx  # add the shift done by slicing
                         found_ys = non_zero_pixels[:, 0, 1]
                         found_ys = found_ys + frame_y_1  # add the frame height back
-                        lines[l].allx.extend(found_xs)
-                        lines[l].ally.extend(found_ys)
+                        lines[l].add_detected_xs(found_xs)
+                        lines[l].add_detected_ys(found_ys)
                 is_good_box = False
 
     # Fit lines
     for l in range(0 ,2): # left and right lane lines
         lines[l].fit_poly_line()
 
-    Line.found_boxs = found_boxs
+    # Line.found_boxs = found_boxs
     if view is not None:
         view.show_xy(norm_peak_ind, norm_hist[norm_peak_ind])
         view.show_found_boxs(found_boxs)
@@ -184,12 +184,11 @@ def detect_lines_previous(input_img, lines, view=None):
         if non_zero_pixels is not None: # add found pixels into the line
             found_xs = non_zero_pixels[:, 0, 0]
             found_ys = non_zero_pixels[:, 0, 1]
-            lines[l].allx = found_xs
-            lines[l].ally = found_ys
+            lines[l].add_detected_xs(found_xs)
+            lines[l].add_detected_ys(found_ys)
             # Fit lines
-    for l in range(0 ,2): # left and right lane lines
+    for l in (0, 1): # left and right lane lines
         lines[l].fit_poly_line()
-        lines[l].fit_poly_line_meter()
     if view is not None:
         view.show_masked_img(masked_img)
         # view.show_xy(norm_peak_ind, norm_hist[norm_peak_ind])
@@ -258,14 +257,13 @@ def detect_line_image(
     if view is not None:
         view.show_vertical_images(undist_img, thresh_img, warped_img, None)
         #view.show_xy(hist_peak_ind, hist[hist_peak_ind])
-
         # view.show_xy(lines[0].allx, frame_y_2 - lines[0].ally - frame_h*(n_frame-frame_n-1))
-        for l in range(0 ,2): # left and right lanes
+        for l in (0, 1): # left and right lanes
             view.show_pixels(np.array(lines[l].allx), np.array(lines[l].ally))
             view.show_fit_line(lines[l])
         view.show_main_images(result)
         view.show_horizontcal_images(color_warp_img, newwarp, newwarp)
-        view.show()
+        # view.show()
 
     return result
 
@@ -309,12 +307,18 @@ def detect_line_video(video_name, view=None, window_title="Advanced Line Finding
             out.write(out_frame)
 
             if not check_line_qualities(lines):
+            # if not check_line_parallel(lines):
+                lines[0].add_one_fail_detection()
+                lines[1].add_one_fail_detection()
+            if lines[0].should_start_new_line() or \
+                lines[1].should_start_new_line():
+                print(" New lines:")
                 lines = [Line(), Line()] # Start new lines from scratch
-        # cv2.imshow(window_title, frame)
-        # cv2.imwrite("v1frames/frame%d.jpg" % count, frame)
-        print("frame " + str(count))
-        count += 1
-
+            # cv2.imwrite("v1frames/frame%d.jpg" % count, frame)
+            print("frame " + str(count))
+            count += 1
+        else:  # frame is None
+            break
         if cv2.waitKey(2) & 0xFF == ord('q'):
             break
     cap.release()
@@ -330,7 +334,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--image',
         #default="test_images/test6.jpg",
-        default="v1frames/frame317.jpg",
+        default="v1frames/frame1050.jpg",
         help='image to be processed')
     parser.add_argument(
         '--video',

@@ -49,6 +49,14 @@ def check_line_qualities(lines):
     return (res1 and res2 and res3)
 
 
+def check_line_parallel(lines):
+    """
+    Check if the left and right lane lines is roughly parallel
+    :param lines: the left and right lane lines
+    :return: True is roughly parallel, False otherwise
+    """
+    return lines[0].check_parallel(lines[1])
+
 def get_line_histogram(img):
     histogram = np.sum(img, axis=0)
     # print(histogram.shape)

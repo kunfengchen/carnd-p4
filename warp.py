@@ -58,7 +58,7 @@ def cal_warp_points(img):
     """
     img_w = img.shape[1]
     img_h = img.shape[0]
-    x_top_right_offset = -30  # fine tune for parallel lines
+    x_top_right_offset = -5  # fine tune for parallel lines
     x_bottom_right_offset = 100  # fine tune for parallel lines
     x_bottom_left_offset = -100  # fine turn for parallel lines
     bottom_high_offset = -50  # fine tune for parallel lines
