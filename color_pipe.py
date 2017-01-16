@@ -48,14 +48,14 @@ def color_pipeline(img,
         return color_binary
 
 def show_threshold_images(img, thresh_img):
-    f, (ax1, ax2) = plt.subplots(1, 2, figsize=(24, 9))
-    f.tight_layout()
+    f, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
+    # f.tight_layout()
     ax1.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-    ax1.set_title('Original Image', fontsize=50)
+    ax1.set_title('Original Image', fontsize=30)
     # ax2.imshow(thresh_img, cmap='gray')
     ax2.imshow(thresh_img)
-    ax2.set_title('Thresholded Magnitude', fontsize=50)
-    plt.subplots_adjust(left=0., right=1, top=0.9, bottom=0.)
+    ax2.set_title('Thresholded Magnitude', fontsize=30)
+    # plt.subplots_adjust(left=0.2, right=0.2, top=0.2, bottom=.2)
     plt.show()
 
 ## Main function
