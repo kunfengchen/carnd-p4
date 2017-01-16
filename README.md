@@ -20,6 +20,8 @@ for a series of test images (in the test_images folder in the repository):
 
 #### Apply Distortion
 The funciton is impletmented in [camera_cal.py](camera_cal.py). calibrate_camera() takes numbers of corners in x and y directions and save the calibration matrix result in file camera_cal/camera_dist.p. The funtion uses provided images in camera_cal/calibraion*.jpg to caculate the results. undistort() function uses the saved calibration matrix to undisotrt the image.
+Here is an example for undistorting an image:
+![Undistorted Image](examples/undistorted_image.png)
 
 
 
