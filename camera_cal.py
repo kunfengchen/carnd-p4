@@ -22,7 +22,7 @@ def calibrate_camera(corners_x = CORNERS_X,
                      calibration_file = CALIBRATION_FILE_NAME,
                      visual=False):
     """
-    :param corners_x: The number of conners in x direction
+    :param corners_x: The number of corners in x direction
     :param corners_y: The number of corners in y direction
     :param calibration_file: The file name to save the calibration
     :param visual: Show the calibration visualization

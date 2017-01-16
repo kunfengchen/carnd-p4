@@ -174,8 +174,6 @@ def detect_lines_sliding_windows(input_img,
 
 
 def detect_lines_previous(input_img, lines, view=None):
-    #rois = Line.get_roi()
-    #print (rois)
     for l in (0, 1):
         # masked_img = region_of_interest(input_img, rois[l], view=view)
         masked_img = region_of_interest(input_img, lines[l].get_best_roi(), view=view)
@@ -342,8 +340,8 @@ if __name__ == '__main__':
         # default="challenge_video.mp4"
     )
     args = parser.parse_args()
-    #view = View()
-    view = None
+    view = View()
+    # view = None
     if args.calibrate_camera:
         calibrate()
     if args.image is not None:

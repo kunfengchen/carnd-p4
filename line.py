@@ -207,22 +207,3 @@ class Line():
         :return:
         """
         return self.n_failed_detection > self.failed_threshold
-
-
-    # Class method
-    def get_roi():
-        """
-        Get the region of the interest using find boxes
-        :return: left and right line rois
-        """
-        roi = [[],[]]  #left and right lines
-
-        for l in (0, 1):
-            boxs = Line.found_boxs[l]
-            for b in (0, -1): # first and last box
-                point = [boxs[b][0],boxs[b][1]]
-                roi[l].append(point)
-            for b in (-1, 0):
-                point = [boxs[b][0]+boxs[b][2], boxs[b][1]+boxs[b][3]]
-                roi[l].append(point)
-        return roi
