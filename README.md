@@ -3,9 +3,35 @@ A software pipeline to identify the lane boundaries in video from a front-facing
 The camera calibration images, test road images, and videos are available in this [repository](https://github.com/udacity/CarND-Advanced-Lane-Lines).
 
 ### Camera Calibration
-OpenCV functions or other methods are used to calculate the correct camera matrix and distortion coefficients using the calibration chessboard images provided in the repository.
+OpenCV functions are implemented in in [camera_cal.py](camera_cal.py) to calculate the correct camera matrix and distortion coefficients using the calibration chessboard images provided in the repository.
 
-Compute the camera calibration matrix and distortion coefficients given a set of chessboard images (in the camera_cal folder in the repository).
+Compute the camera calibration matrix and distortion coefficients given a set of chessboard images (in the camera_cal folder in the repository). The function is implemented in calibrate_camera() that takes in numbers of corners in x and y directions and save the calibration matrix result in file camera_cal/camera_dist.p. The funtion uses provided images in camera_cal/calibraion*.jpg to caculate the results. The results are saved to file for pipeline process.
+
+    ```
+    ret, corners = cv2.findChessboardCorners(gray, (corners_x, corners_y), None)
+    ```
+    
+    ```
+    python3 camera_cal.py --calibrate --visual
+    Found corners on camera_cal/calibration10.jpg
+    Found corners on camera_cal/calibration11.jpg
+    Found corners on camera_cal/calibration7.jpg
+    Found corners on camera_cal/calibration8.jpg
+    Found corners on camera_cal/calibration16.jpg
+    Found corners on camera_cal/calibration20.jpg
+    Found corners on camera_cal/calibration13.jpg
+    Found corners on camera_cal/calibration14.jpg
+    Found corners on camera_cal/calibration3.jpg
+    Found corners on camera_cal/calibration17.jpg
+    Found corners on camera_cal/calibration2.jpg
+    Found corners on camera_cal/calibration15.jpg
+    Found corners on camera_cal/calibration6.jpg
+    Found corners on camera_cal/calibration19.jpg
+    Found corners on camera_cal/calibration12.jpg
+    Found corners on camera_cal/calibration9.jpg
+    Found corners on camera_cal/calibration18.jpg
+    ```
+
 
 ### Pipeline (single images)
 for a series of test images (in the test_images folder in the repository):
@@ -19,8 +45,16 @@ for a series of test images (in the test_images folder in the repository):
 * Output visual display of the lane boundaries and numerical estimation of lane curvature and vehicle position.
 
 #### Apply Distortion
-The funciton is impletmented in [camera_cal.py](camera_cal.py). calibrate_camera() takes in numbers of corners in x and y directions and save the calibration matrix result in file camera_cal/camera_dist.p. The funtion uses provided images in camera_cal/calibraion*.jpg to caculate the results. undistort() function uses the saved calibration matrix to undisotrt the image.
+The funciton is impletmented in [camera_cal.py](camera_cal.py). undistort() function uses the saved calibration matrix to undisotrt the image.
 
+   ```
+    if  dist_matrix is None:
+        dist_matrix = load_dist_matrix()
+    mtx = dist_matrix["mtx"]
+    dist = dist_matrix["dist"]
+    dst = cv2.undistort(img, mtx, dist, None, mtx)
+   ```
+   
 Here are examples for undistorting an image.
 
 python3 camera_cal.py --undistort camera_cal/calibration1.jpg:
