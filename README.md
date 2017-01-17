@@ -38,7 +38,7 @@ python3 color_pipe.py --colored test_images/test4.jpg:
 ![python3 color_pipe.py --colored test_images/test4.jpg](examples/colored_image.png)
 Note: for debugging purpose, the green color shows mask1, and blue mask2. As you can see, combined mask1 and mask2 shows a longer left lane line.
 
-#### Apply a Perspective Transform (Birds-eye View)
+#### Apply a Perspective Transform (Birds-eye View, Warp image)
 The function is implemented in [warp.py](warp.py). warp_image() takes in an inputer image, source points, and destination points and warp the image into the perspective "birds-eye view." The function will return the inversed transform matrix for un-warping the image.
 
 Here is an example for perspective transform.
@@ -48,7 +48,7 @@ python3 warp.py --warp test_images/test4.jpg:
 Here we want to make sure lef and right land lines are parallel by adusting the source points (in red dots).
 
 #### Detect Lane Pixels and Fit to Find Lane Boundary
-The function is implemented in ![pipleline.py](pipeline.py). pipleline.py is the main file that apply all the sub-pipelines. After applying calibration, thresholding, and a perspective transform, we should have a binary image where teh lane lines stand out clearly. Next step is to find out exactly which pixels belong to the left line and which belong to the right line. The technique used here is to find peaks in a histogram.
+The function is implemented in [pipeline.py](pipeline.py). pipleline.py is the main file that apply all the sub-pipelines. After applying calibration, thresholding, and a perspective transform, we should have a binary image where teh lane lines stand out clearly. Next step is to find out exactly which pixels belong to the left line and which belong to the right line. The technique used here is to find peaks in a histogram.
 
 First take a histogram alon all the columns in teh lower part of the image:
 ```
@@ -63,8 +63,17 @@ detect_line_image() takes in an input image and detect the lane lines. There are
 The basic logic is to use detect_lines_sliding_window() at the beginning frames, which will take longer time, and then use that information to get the region of interest to use detect_lines_previous() for detecting line to save time. If detect_lines_previous() failed to obtain a good line, detect_lines_sliding_window() is used again from the scratch.
 
 There are three methods used to determind if lines detected are good. The methods are implemented line.py inside Line class. check_line parallel() checks if two lines are parallel. check_similar_curvatures checks if two lines have similar curvatures, and check_distance checks if two lines have the distance.
-   
 
+#### Determine Curvature of The Lane and Vehicle Position with Respect to Center
+Line class get_curvatgure_radius() calculates the lane curvature from the fitted line. You can find [a curvature tutorial here](http://www.intmath.com/applications-differentiation/8-radius-curvature.php). get_off_center_as_left() calculates the center position of the car. The function asumes the center x location is at pixcel number 805, and lane width is 950-pixel wide. The left line x position (at y in image bottom) is used to calculate the car center location. The unit is coverted to meter using the ratial of 3.7/700 meters per pixel.
+
+#### Warp the Detected Lane Boundaries Back Onto the Original Image
+It's time to project the detected lines back down onto the image. First draw the detected lane lines onto a warped blank image. Then warp the blank image back to original image using cv2.warpPerspective() with the inversed perspective matrix returned from the function warp_image() in warp.py. Finally, combine teh result with the original image.
+
+That's it. That's the whole pipeline for detecting land lines using advanced techniques!
 
 ### Pipeline (video)
-After testeing pipline in static images, now it's time to apply the pipline to video.
+After applying pipline in static images, now it's time to apply the pipline to video.
+
+Here is the result:
+
