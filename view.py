@@ -41,10 +41,10 @@ class View:
 
     def show_vertical_images(self, img1, img2, img3, img4):
         if img1 is not None:
-            self.ax1_v.imshow(cv2.cvtColor(img1, cv2.COLOR_BGR2RGB))
+            self.ax1_v.imshow(img1, cmap='gray')
         src_ps, dst_ps = cal_warp_points(img2)
         for p in src_ps:
-            self.ax2_v.plot(p[0], p[1], 'ro')
+            self.ax1_v.plot(p[0], p[1], 'ro')
         if img2 is not None:
             self.ax2_v.imshow(img2, cmap='gray')
         if img3 is not None:
@@ -64,7 +64,7 @@ class View:
 
     def show_plots(self, plots):
         for i, p in enumerate(plots):
-            # plt.plot(p + i * 10)
+            plt.plot(p + i * 10)
             self.ax4_v.plot(p)
 
 
@@ -78,31 +78,37 @@ class View:
 
     def show_fit_line(self, line):
         if line.current_fit_p is not None:
-            self.ax3_v.plot(line.current_fit_p(line.yvals), line.yvals, linewidth=3)
+            self.ax2_v.plot(line.current_fit_p(line.yvals), line.yvals, linewidth=3)
 
 
     def show_found_boxs(self, found_boxs):
         for b in found_boxs[0]:
-            self.ax3_v.add_patch(
+            self.ax2_v.add_patch(
                 Rectangle((b[0], b[1]), b[2], b[3],
                           color='yellow',
                           fill=None,
                           linewidth=2))
         for b in found_boxs[1]:
-            self.ax3_v.add_patch(
+            self.ax2_v.add_patch(
                 Rectangle((b[0], b[1]), b[2], b[3],
                           color='pink',
                           fill=None,
                           linewidth=2))
         for b in found_boxs[2]:
-            self.ax3_v.add_patch(
+            self.ax2_v.add_patch(
                 Rectangle((b[0], b[1]), b[2], b[3],
                           color='red',
                           fill=None,
                           linewidth=2))
 
 
-    def show_masked_img(self, img):
+    def show_roi_img(self, img, l):
+        """
+        Show the region of interest image
+        :param img: the input image
+        :param l: l=0 for left lane and l=1 for right lane
+        :return:
+        """
         self.ax3_v.imshow(img)
 
 

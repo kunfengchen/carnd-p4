@@ -166,7 +166,6 @@ def detect_lines_sliding_windows(input_img,
     for l in range(0 ,2): # left and right lane lines
         lines[l].fit_poly_line()
 
-    # Line.found_boxs = found_boxs
     if view is not None:
         view.show_xy(norm_peak_ind, norm_hist[norm_peak_ind])
         view.show_found_boxs(found_boxs)
@@ -175,7 +174,7 @@ def detect_lines_sliding_windows(input_img,
 
 def detect_lines_previous(input_img, lines, view=None):
     for l in (0, 1):
-        # masked_img = region_of_interest(input_img, rois[l], view=view)
+        # Get region of interest from previous lines
         masked_img = region_of_interest(input_img, lines[l].get_best_roi(), view=view)
         non_zero_pixels = cv2.findNonZero(
             np.array(masked_img, np.uint8))
@@ -187,16 +186,17 @@ def detect_lines_previous(input_img, lines, view=None):
             # Fit lines
     for l in (0, 1): # left and right lane lines
         lines[l].fit_poly_line()
-    if view is not None:
-        view.show_masked_img(masked_img)
-        # view.show_xy(norm_peak_ind, norm_hist[norm_peak_ind])
+        if view is not None:
+            view.show_roi_img(masked_img, l)
+
 
 
 def detect_line_image_file(
         file_name,
         lines = [Line(), Line()], # left and right lane
         dist_matrix=None,
-        view=None):
+        view=None,
+        show_window=False):
     """
     Detect lines from input image
     :param file_name: the input image file name
@@ -206,19 +206,23 @@ def detect_line_image_file(
     """
     # load the image from file
     input_img = cv2.imread(file_name)
-    return detect_line_image(input_img, lines, dist_matrix=dist_matrix, view=view)
+    return detect_line_image(
+        input_img, lines, dist_matrix=dist_matrix,
+        view=view, show_window=show_window)
 
 
 def detect_line_image(
         input_img,
         lines = [Line(), Line()], # left and right lane
         dist_matrix=None,
-        view=None):
+        view=None,
+        show_window=False):
     """
     Detect lines from input image
     :param file_name: the input image file name
     :param dist_matrix: the ditortion matrix
-    :param visual: show pipeline visualization or not
+    :param view: show pipeline visualization or not
+    :param show_window: show the X winoow for static image or not
     :return: the output image with detected lines drawn
     """
     curvatures = [0, 0]  # curvatures in radius for left and right lanel lines
@@ -253,7 +257,7 @@ def detect_line_image(
     cv2.putText(result, info2, (20, 100), font, 1, (255, 255, 255), 3)
 
     if view is not None:
-        view.show_vertical_images(undist_img, thresh_img, warped_img, None)
+        view.show_vertical_images(thresh_img, warped_img, None, None)
         #view.show_xy(hist_peak_ind, hist[hist_peak_ind])
         # view.show_xy(lines[0].allx, frame_y_2 - lines[0].ally - frame_h*(n_frame-frame_n-1))
         for l in (0, 1): # left and right lanes
@@ -261,7 +265,8 @@ def detect_line_image(
             view.show_fit_line(lines[l])
         view.show_main_images(result)
         view.show_horizontcal_images(color_warp_img, newwarp, newwarp)
-        # view.show()
+        if show_window:
+            view.show()
 
     return result
 
@@ -332,19 +337,23 @@ if __name__ == '__main__':
     parser.add_argument(
         '--image',
         #default="test_images/test6.jpg",
-        default="v1frames/frame1050.jpg",
+        #default="v1frames/frame1050.jpg",
         help='image to be processed')
     parser.add_argument(
         '--video',
-        default="project_video.mp4"
-        # default="challenge_video.mp4"
-    )
+        default="project_video.mp4")
+    parser.add_argument(
+        '--visual',
+        action='store_true',
+        default=False)
     args = parser.parse_args()
-    view = View()
     view = None
+    if args.visual:
+        view = View()
     if args.calibrate_camera:
         calibrate()
     if args.image is not None:
-        detect_line_image_file(args.image, view=view)
+        detect_line_image_file(args.image, view=view, show_window=True)
+        exit()
     if args.video is not None:
         detect_line_video(args.video, view=view)
