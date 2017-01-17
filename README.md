@@ -76,7 +76,7 @@ That's it. That's the whole pipeline for detecting land lines using advanced tec
 After applying pipline in static images, now it's time to apply the pipline to video.
 
 Here is the result:
-![project_video_result.mp4](project_video_result.mp4)
+[project_video_result.mp4](project_video_result.mp4)
 
 ### Final Thoughts
 #### It's great to learn new techiques from OpenCV.
