@@ -70,5 +70,10 @@ Line class get_curvatgure_radius() calculates the lane curvature from the fitted
 #### Warp the Detected Lane Boundaries Back Onto the Original Image
 It's time to project the detected lines back down onto the image. First draw the detected lane lines onto a warped blank image. Then warp the blank image back to original image using cv2.warpPerspective() with the inversed perspective matrix returned from the function warp_image() in warp.py. Finally, combine teh result with the original image.
 
+That's it. That's the whole pipeline for detecting land lines using advanced techniques!
+
 ### Pipeline (video)
-After testeing pipline in static images, now it's time to apply the pipline to video.
+After applying pipline in static images, now it's time to apply the pipline to video.
+
+Here is the result:
+
