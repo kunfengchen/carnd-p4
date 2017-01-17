@@ -38,8 +38,18 @@ python3 color_pipe.py --colored test_images/test4.jpg:
 ![python3 color_pipe.py --colored test_images/test4.jpg](examples/colored_image.png)
 Note: for debugging purpose, the green color shows mask1, and blue mask2. As you can see, combined mask1 and mask2 shows a longer left lane line.
 
+#### Apply a Perspective Transform (Birds-eye View)
+The function is implemented in [warp.py](warp.py). warp_image() takes in inputer image, source points, and destination points and warp the image into the perspective "birds-eye view." The function will return the inversed transform matrix for un-warping the image.
+
+Here is an example for perspective transform.
+
+python3 warp.py --warp test_images/test4.jpg:
+![python3 warp.py --warp test_images/test4.jpg](examples/warped_image.png)
+Here we want to make sure lef and right land lines are parallel by adusting the source points (in red dots).
+
 
 
 
 
 ### Pipeline (video)
+After testeing pipline in static images, now it's time to apply the pipline to video.
