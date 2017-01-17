@@ -7,11 +7,21 @@ OpenCV functions are implemented in in [camera_cal.py](camera_cal.py) to calcula
 
 Compute the camera calibration matrix and distortion coefficients given a set of chessboard images (in the camera_cal folder in the repository). The function is implemented in calibrate_camera() that takes in numbers of corners in x and y directions and save the calibration matrix result in file camera_cal/camera_dist.p. The funtion uses provided images in camera_cal/calibraion*.jpg to caculate the results. The results are saved to file for pipeline process.
 
-    ```
-    ret, corners = cv2.findChessboardCorners(gray, (corners_x, corners_y), None)
-    ```
     
-    ```
+    ret, corners = cv2.findChessboardCorners(gray, (corners_x, corners_y), None)
+    
+    # Do camera calibration given object points and image points
+    img_size = (img_shape[1], img_shape[0])
+    ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(
+        objpoints, imgpoints, img_size, None, None)
+
+    # Save the camera calibration result for later use (we won't worry about rvecs / tvecs)
+    dist_pickle = {}
+    dist_pickle["mtx"] = mtx
+    dist_pickle["dist"] = dist
+    pickle.dump( dist_pickle, open(calibration_file , "wb" ) )
+    
+    
     python3 camera_cal.py --calibrate --visual
     Found corners on camera_cal/calibration10.jpg
     Found corners on camera_cal/calibration11.jpg
@@ -30,7 +40,7 @@ Compute the camera calibration matrix and distortion coefficients given a set of
     Found corners on camera_cal/calibration12.jpg
     Found corners on camera_cal/calibration9.jpg
     Found corners on camera_cal/calibration18.jpg
-    ```
+   
 
 
 ### Pipeline (single images)
