@@ -41,6 +41,7 @@ Compute the camera calibration matrix and distortion coefficients given a set of
     Found corners on camera_cal/calibration9.jpg
     Found corners on camera_cal/calibration18.jpg
    
+![img](examples/found_corners.png
 
 
 ### Pipeline (single images)
