@@ -1,4 +1,4 @@
-# Carnd-P4: Advanced Lane Finding (In Progress ...)
+# Carnd-P4: Advanced Lane Finding
 A software pipeline to identify the lane boundaries in video from a front-facing camera on a car.
 The camera calibration images, test road images, and videos are available in this [repository](https://github.com/udacity/CarND-Advanced-Lane-Lines).
 
