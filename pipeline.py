@@ -286,7 +286,7 @@ def detect_line_video(video_name, view=None, window_title="Advanced Line Finding
     """
 
     # Video out
-    fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+    fourcc = cv2.VideoWriter_fourcc(*'H264')
     out = cv2.VideoWriter(video_out_name, fourcc, 20.0, (1280, 720))
     while cap.isOpened():
         ret, frame = cap.read()
@@ -341,7 +341,7 @@ if __name__ == '__main__':
     )
     args = parser.parse_args()
     view = View()
-    # view = None
+    view = None
     if args.calibrate_camera:
         calibrate()
     if args.image is not None:

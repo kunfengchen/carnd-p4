@@ -46,7 +46,7 @@ def show_two_images(src, dst,
     ax1.set_title(title_src, fontsize=30)
     ax2.imshow(dst_rgb)
     for p in dst_points:
-        ax2.plot(p[0], p[1], 'ro')
+        ax2.plot(p[0], p[1], 'go')
     ax2.set_title(title_dst, fontsize=30)
     plt.show()
 
