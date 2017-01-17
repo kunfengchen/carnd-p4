@@ -97,3 +97,9 @@ For example, the perspective transformation source pionts is eyeballed and hard 
 When changing the perspective tranformation source points, the fllowing piplelines are affected, too, since the resluting pixels are different. This requires more testing and make the funcitons less portable for other videos.
 
 #### Hypothetical cases for Pipeline to Fail
+For the uphill or downhill roads the pipleline may fail because the camera view to the road is different on the road vanishing point, which will affect the warp function source pionts that produce undesired results.
+
+Different wether conditions may also cause the pipeline to fail because more (or less) sun light could could affect color appearence in the camera. This will affect the color pipeline to add more noise or fail to filter out the lines (might due to the threhold setting).
+
+#### Overall
+For my pipeline there is still a very long way to go to be in production. Too many hard-code pararmeter and threshold to be manually tuned to work correctly. This will be difficult to deploy since each car has different camera setup. Hope we can combine machine learing to solve the problem together with less fine tune process.
