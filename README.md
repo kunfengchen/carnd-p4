@@ -76,4 +76,24 @@ That's it. That's the whole pipeline for detecting land lines using advanced tec
 After applying pipline in static images, now it's time to apply the pipline to video.
 
 Here is the result:
+![project_video_result.mp4](project_video_result.mp4)
 
+### Final Thoughts
+#### It's great to learn new techiques from OpenCV.
+Learned somethnig new each day, especailly more familiar with Python Class, Numpy, OpenCV, and Matplotlib. Those are very useful tools to communicate the program and idea to people in visualzation. Finally got time to learn how subplot and GridSpec work.
+
+#### How to Success
+We need to be very carfull and fully tested for each pipeple. There are too much dependencies on one another. When we change one parameter, we better test it on all the pipelines.
+
+Thanks to fellow classmate John Chen, he gave the idea of using diagnositc view for debugging the pipeline. We can ping piont the problem right away through the view will all the intermediate images displayed.
+
+One more thing is if we can do a better job in a pipeline, we will save more time on the pileline that followed. The more is followed the more time is save. The corner cases will be drastically reduces.
+
+#### Could Be Improved
+There are a lot of fine tuning, assumptions, and hard coded pararmeters. It would be great to reduce those to for the pipeline to be more robust and apply to more situations.
+
+For example, the perspective transformation source pionts is eyeballed and hard coded. This will take more time and manual effort to apply to a diffent view point of the camera. The center position is assumed after processing the video and eyeballed the results. The information is not very accuration and only for fun.
+
+When changing the perspective tranformation source points, the fllowing piplelines are affected, too, since the resluting pixels are different. This requires more testing and make the funcitons less portable for other videos.
+
+#### Hypothetical cases for Pipeline to Fail
