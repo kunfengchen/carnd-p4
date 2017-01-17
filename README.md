@@ -75,15 +75,20 @@ That's it. That's the whole pipeline for detecting land lines using advanced tec
 #### Whole Pipeline Diagram Views
 The view is implemented in view.py. The two types of views: One is sliding-window view, and the other is previous-line view.
  * slidig-window views
-  python3 pipeline.py --image test_images/test1.jpg --visual
-  ![img](examples/dia_sliding_test1.png
   
   python3 pipeline.py --image test_images/test1.jpg --visual
-  ![img](examples/dia_sliding_test5.png
+  
+  ![img](examples/dia_sliding_test1.png)
+  
+  python3 pipeline.py --image test_images/test1.jpg --visual
+  
+  ![img](examples/dia_sliding_test5.png)
  
  * previous-line view (video mode)
+ 
   python3 pipeline.py --visual
-  ![img](examples/dia_previous.png
+  
+  ![img](examples/dia_previous.png)
 
 ### Pipeline (video)
 After applying pipline in static images, now it's time to apply the pipline to video.
